@@ -1,0 +1,91 @@
+---
+title: "test_rvu_v0.1"
+author: "Nikos Papakatsikas"
+date: '2021-06-08'
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(tidyverse)
+```
+
+
+```{r read_data, echo=FALSE, include = FALSE}
+
+rvu <- read_delim("rvu.csv", ";", escape_double = FALSE, 
+                    locale = locale(encoding = "ISO-8859-1"), 
+                    trim_ws = TRUE) %>%
+    mutate(
+        avstand = as.numeric(str_replace(avstand, ",", "."))
+    )
+
+pers <- read_delim("pers.csv", ";", escape_double = FALSE, 
+                     locale = locale(encoding = "ISO-8859-1"), 
+                     trim_ws = TRUE)
+
+purposes <- data.frame(
+    purpose_id = c(1:12),
+    purpose = c("Arbete (till jobbet)", "Studier (till skola/studier)", "Tjänsteresa (resa i arbetet)",
+      "Inköp av dagligvaror", "Övriga inköp", "Service (sjukvård, bank, post etc.)", 
+      "Hämta och lämna inom barnomsorgen", "Skjutsa/följa/hämta annan person", "Besöka släkt och vänner",
+      "Egen fritidsaktivitet/nöje/motion", "Hemresa/till bostaden", "Annat ärende")
+)
+```
+
+```{r purpose_analysis, echo=FALSE, include = FALSE}
+rvu_purp <- rvu %>%
+    select(resa.no, respondentid, b2) %>%
+    left_join(purposes, by = c("b2" = "purpose_id")) %>%
+    group_by(purpose) %>%
+    summarise(antal = n())
+
+top_purpose <- rvu_purp %>% filter(!is.na(purpose)) %>% arrange(desc(antal)) %>% filter(row_number()==1)
+top_purpose_2 <- rvu_purp %>% filter(!is.na(purpose)) %>% arrange(desc(antal)) %>% filter(row_number()==2)
+
+top_purpose <- top_purpose$purpose
+top_purpose_2 <- top_purpose_2$purpose
+
+rvu_purp_rep <- rvu_purp %>%
+    rename(
+        'Ärende' = purpose,
+        'Antal svar' = antal
+    )
+
+```
+
+## Ärendeanalys
+
+I tabell 3.1 beskrivs vilka ärenden som respondenterna har svarat att de uppfylde med sina resor. Huvudärendet är ``r top_purpose`` och andra mest populärt ärende är ``r top_purpose_2``.
+
+```{r purpose_table, echo = FALSE, results = "asis"}
+kable(rvu_purp_rep, caption = "Tabell 3.1: Antal resor per ärende")
+
+```
+
+```{r purpose_diagram, echo = FALSE, results = "asis"}
+purp_barplot <- ggplot(rvu_purp, aes(purpose, antal, fill = purpose)) + 
+    geom_bar(stat = "identity") +
+    theme_minimal() +
+    theme(legend.title = element_blank(),
+          axis.line.x = element_blank(),
+          axis.text.x = element_blank(),
+          axis.ticks.x = element_blank(),
+          panel.grid.major.x = element_blank(),
+          panel.grid.minor.x = element_blank()) +
+    coord_cartesian(xlim = c(0,15)) +
+    scale_fill_brewer(palette = "Set3") + 
+    labs(
+        x = "Ärende",
+        y = "Antal svar",
+        title = "Antal resor per ärende"
+    )
+    
+    
+purp_barplot
+
+```
