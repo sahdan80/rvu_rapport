@@ -12,6 +12,7 @@ library(knitr)
 knitr::opts_chunk$set(echo = TRUE)
 library(ggplot2)
 library(tidyverse)
+library("readxl")
 ```
 
 
@@ -28,31 +29,57 @@ pers <- read_delim("pers.csv", ";", escape_double = FALSE,
                      locale = locale(encoding = "ISO-8859-1"), 
                      trim_ws = TRUE)
 
-purposes <- data.frame(
-    purpose_id = c(1:12),
-    purpose = c("Arbete (till jobbet)", "Studier (till skola/studier)", "Tjänsteresa (resa i arbetet)",
-      "Inköp av dagligvaror", "Övriga inköp", "Service (sjukvård, bank, post etc.)", 
-      "Hämta och lämna inom barnomsorgen", "Skjutsa/följa/hämta annan person", "Besöka släkt och vänner",
-      "Egen fritidsaktivitet/nöje/motion", "Hemresa/till bostaden", "Annat ärende")
-)
+
+# xls files
+variable_data <- read_excel("Variable information + Variable Values 2021-05-28.xlsx",
+                            sheet = "Variable Labels", skip = 1, col_names = TRUE)
+labels_data <- read_excel("Variable information + Variable Values 2021-05-28.xlsx",
+                          sheet = "Value Labels", skip = 1, col_names = TRUE)
+
+
+labels_data <- labels_data %>%
+  rename(answer_id=...2,answer=Label,question_id=Value) %>%
+  mutate(answer_id = as.numeric(str_remove(str_replace(answer_id, ",", "."),"a"))) %>% #Obs finns NA-observationer
+  mutate(question_num=cumsum(!is.na(question_id)))
+
+nyckel <- labels_data %>%
+  select(question_id, question_num) %>%
+  filter(!is.na(question_id))
+
+labels_data <- labels_data %>%
+  select(answer_id,answer, question_num) %>%
+  left_join(nyckel, by = "question_num") %>%
+  select(question_id,answer_id,answer)
+
+purposes <- labels_data %>%
+  filter(question_id=="B2_R1") %>%
+  select(answer_id,answer)
+
+#purposes_old <- data.frame(
+#    purpose_id = c(1:12),
+#    purpose = c("Arbete (till jobbet)", "Studier (till skola/studier)", "Tjänsteresa (resa i arbetet)",
+#      "Inköp av dagligvaror", "Övriga inköp", "Service (sjukvård, bank, post etc.)", 
+#      "Hämta och lämna inom barnomsorgen", "Skjutsa/följa/hämta annan person", "Besöka släkt och vänner",
+#      "Egen fritidsaktivitet/nöje/motion", "Hemresa/till bostaden", "Annat ärende")
+#)
 ```
 
 ```{r purpose_analysis, echo=FALSE, include = FALSE}
 rvu_purp <- rvu %>%
     select(resa.no, respondentid, b2) %>%
-    left_join(purposes, by = c("b2" = "purpose_id")) %>%
-    group_by(purpose) %>%
+    left_join(purposes, by = c("b2" = "answer_id")) %>%
+    group_by(answer) %>%
     summarise(antal = n())
 
-top_purpose <- rvu_purp %>% filter(!is.na(purpose)) %>% arrange(desc(antal)) %>% filter(row_number()==1)
-top_purpose_2 <- rvu_purp %>% filter(!is.na(purpose)) %>% arrange(desc(antal)) %>% filter(row_number()==2)
+top_purpose <- rvu_purp %>% filter(!is.na(answer)) %>% arrange(desc(antal)) %>% filter(row_number()==1)
+top_purpose_2 <- rvu_purp %>% filter(!is.na(answer)) %>% arrange(desc(antal)) %>% filter(row_number()==2)
 
-top_purpose <- top_purpose$purpose
-top_purpose_2 <- top_purpose_2$purpose
+top_purpose <- top_purpose$answer
+top_purpose_2 <- top_purpose_2$answer
 
 rvu_purp_rep <- rvu_purp %>%
     rename(
-        'Ärende' = purpose,
+        'Ärende' = answer,
         'Antal svar' = antal
     )
 
@@ -68,7 +95,7 @@ kable(rvu_purp_rep, caption = "Tabell 3.1: Antal resor per ärende")
 ```
 
 ```{r purpose_diagram, echo = FALSE, results = "asis"}
-purp_barplot <- ggplot(rvu_purp, aes(purpose, antal, fill = purpose)) + 
+purp_barplot <- ggplot(rvu_purp, aes(answer, antal, fill = answer)) + 
     geom_bar(stat = "identity") +
     theme_minimal() +
     theme(legend.title = element_blank(),
