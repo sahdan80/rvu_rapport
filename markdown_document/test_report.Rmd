@@ -1,18 +1,61 @@
 ---
-title: "test_rvu_v0.1"
-author: "Nikos Papakatsikas"
-date: '2021-06-08'
+title: "test_rvu_v1.1"
+author: "WSP"
+date: "`r Sys.Date()`"
+site: bookdown::bookdown_site
 output:
-  pdf_document: default
-  html_document: default
+  bookdown::pdf_document2: default
+header-includes:
+  - \renewcommand{\figurename}{Figur }
+  - \makeatletter
+  - \def\fnum@figure{\figurename\thefigure}
+  - \makeatother
+  - \renewcommand{\tablename}{Tabell }
+  - \makeatletter
+  - \def\tnum@table{\tablename\thetable}
+  - \makeatother
 ---
+
+# Resvaneundersökning Bålsta
 
 ```{r setup, include=FALSE}
 library(knitr)
 knitr::opts_chunk$set(echo = TRUE)
 library(ggplot2)
 library(tidyverse)
-library("readxl")
+library(readxl)
+library(bookdown)
+```
+
+```{r plot-theme-creation, include = FALSE}
+rvu_theme <- function() {
+    theme(
+        plot.title = element_text(colour = "steelblue", face = "bold"),
+        plot.background = element_rect(fill = "white"),
+        # add border 1)
+        panel.border = element_rect(colour = "blue", fill = NA, linetype = 1),
+        # color background 2)
+        panel.background = element_rect(fill = "aliceblue"),
+        # modify grid 3)
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.major.y =  element_line(colour = "steelblue", linetype = 3, size = 0.5),
+        panel.grid.minor.y = element_blank(),
+        # modify text, axis and colour 4) and 5)
+        axis.title.y = element_text(colour = "steelblue"),
+        axis.title.x = element_text(colour = "steelblue"),
+        axis.line.x = element_blank(),
+        axis.text.y = element_text(colour = "steelblue", face = "italic"),
+        axis.text.x = element_blank(),
+        axis.ticks.y = element_line(colour = "steelblue"),
+        axis.ticks.x = element_blank(),
+        # legend at the bottom 6)
+        legend.position = "right",
+        legend.title = element_blank(),
+        legend.background = element_rect(colour = "steelblue", fill = "aliceblue")
+    )
+}
+
 ```
 
 
@@ -87,23 +130,17 @@ rvu_purp_rep <- rvu_purp %>%
 
 ## Ärendeanalys
 
-I tabell 3.1 beskrivs vilka ärenden som respondenterna har svarat att de uppfylde med sina resor. Huvudärendet är ``r top_purpose`` och andra mest populärt ärende är ``r top_purpose_2``.
+I Tabell \@ref(tab:purpose-table) och Figur \@ref(fig:purpose-diagram) beskrivs vilka ärenden som respondenterna har svarat att de uppfylde med sina resor. Huvudärendet är `r tolower(top_purpose)` och andra mest populärt ärende är `r tolower(top_purpose_2)`.
 
-```{r purpose_table, echo = FALSE, results = "asis"}
-kable(rvu_purp_rep, caption = "Tabell 3.1: Antal resor per ärende")
+```{r purpose-table, echo = FALSE, results = "asis"}
+kable(rvu_purp_rep, caption = "Antal resor per ärende")
 
 ```
 
-```{r purpose_diagram, echo = FALSE, results = "asis"}
+```{r purpose-diagram, echo = FALSE, results = "asis", fig.cap = "Antal resor per ärende."}
 purp_barplot <- ggplot(rvu_purp, aes(answer, antal, fill = answer)) + 
     geom_bar(stat = "identity") +
-    theme_minimal() +
-    theme(legend.title = element_blank(),
-          axis.line.x = element_blank(),
-          axis.text.x = element_blank(),
-          axis.ticks.x = element_blank(),
-          panel.grid.major.x = element_blank(),
-          panel.grid.minor.x = element_blank()) +
+    rvu_theme() +
     coord_cartesian(xlim = c(0,15)) +
     scale_fill_brewer(palette = "Set3") + 
     labs(
@@ -112,7 +149,7 @@ purp_barplot <- ggplot(rvu_purp, aes(answer, antal, fill = answer)) +
         title = "Antal resor per ärende"
     )
     
-    
+
 purp_barplot
 
 ```
