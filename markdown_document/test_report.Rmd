@@ -58,7 +58,6 @@ rvu_theme <- function() {
 
 ```
 
-
 ```{r read_data, echo=FALSE, include = FALSE}
 
 rvu <- read_delim("rvu.csv", ";", escape_double = FALSE, 
@@ -73,7 +72,7 @@ pers <- read_delim("pers.csv", ";", escape_double = FALSE,
                      trim_ws = TRUE)
 
 
-# xls files
+#Lookup-table för att hämta klartext
 variable_data <- read_excel("Variable information + Variable Values 2021-05-28.xlsx",
                             sheet = "Variable Labels", skip = 1, col_names = TRUE)
 labels_data <- read_excel("Variable information + Variable Values 2021-05-28.xlsx",
@@ -96,13 +95,93 @@ labels_data <- labels_data %>%
   left_join(nyckel, by = "question_num") %>%
   select(question_id,answer_id,answer)
 
+
+
+```
+
+## Sammanfattning
+
+### Antal resor
+
+### Färdmedelsföredlning
+
+### Trafikarbete
+
+### Fördelning mellan män och kvinnor
+
+### Fördelning mellan ålderskategorier
+
+### Vanligaste målpunkterna
+
+## Inledning
+
+### Metod
+
+Hur dokumentet är skapat och generellt om kollbar
+
+### Population och urval
+
+Sammanfattning av SCB:s populationsdata, antal respondenter osv Tabell med antal boende och antal respondenter
+
+## Resultat
+
+### Körkort och biltillgång
+
+Tabell med körkort och bilinnehav
+
+```{r korkort, echo=FALSE}
+
+```
+
+### Antal resor
+
+Tabell med andel personer som rest och deras antal resor per dag redovisat per kön och ålderskategori
+
+### Resornas fördelning på färdsätt
+
+Tabell/diagram med färdmedelsandelar per område
+
+### Bakgrundfrågor
+
+#### Färdsätt efter kön
+
+Tabell/diagram med färdsätt efter kön.
+
+#### Färdsätt efter ålder
+
+Tabell/diagram med färdsätt efter ålder, 12-17 år, 18-24 år, 25-39 år, 40-64 år, 65-74 år, 75-84 år
+
+#### Färdsätt efter sysselsättning
+
+Tabell/diagram med färdsätt efter sysselsättning
+
+#### Färdsätt efter ärende
+
+Tabell/diagram med färdsätt efter ärende
+
+### Reslängd och trafikarbete
+
+#### Resor med start och mål innanför kommungränsen
+
+Tabell med genomsnittlig reslängd och uppräknat antalresor och trafikarbete för varje delområde totalt per område och färdmedel
+
+Tabell/diagram med antal resor per färdmedel efter färmedelslängd Graf med färdmedelsandelar över x = antal kilometer.
+
+#### Resor med start eller mål utanför kommungränsen
+
+Liten OD-matris med vilka andra områden (tätorter, kommuner eller län, beroende på vilken nivå RVU:n tas fram för.) som respondenterna reser till. I antal procent av totala antalet resor.
+
+# Kartor och bilagor
+
+Här följer en karta och mer detaljerade tabeller.
+
+## Ärendeanalys
+
+```{r purpose_analysis, echo=FALSE, include = FALSE}
 purposes <- labels_data %>%
   filter(question_id=="B2_R1") %>%
   select(answer_id,answer)
 
-```
-
-```{r purpose_analysis, echo=FALSE, include = FALSE}
 rvu_purp <- rvu %>%
     select(resa.no, respondentid, b2) %>%
     left_join(purposes, by = c("b2" = "answer_id")) %>%
@@ -122,79 +201,6 @@ rvu_purp_rep <- rvu_purp %>%
     )
 
 ```
-
-## Sammanfattning
-
-
-### Antal resor
-### Färdmedelsföredlning
-### Trafikarbete
-### Fördelning mellan män och kvinnor
-### Fördelning mellan ålderskategorier
-### Vanligaste målpunkterna
-
-## Inledning
-### Metod
-
-Hur dokumentet är skapat och generellt om kollbar
-
-### Population och urval
-
-Sammanfattning av SCB:s populationsdata, antal respondenter osv
-Tabell med antal boende och antal respondenter
-
-## Resultat
-### Körkort och biltillgång
-
-Tabell med körkort och bilinnehav
-
-### Antal resor
-
-Tabell med andel personer som rest och deras antal resor per dag redovisat per kön och ålderskategori
-
-### Resornas fördelning på färdsätt
-
-Tabell/diagram med färdmedelsandelar per område
-
-### Bakgrundfrågor
-#### Färdsätt efter kön\
-
-Tabell/diagram med färdsätt efter kön.
-
-#### Färdsätt efter ålder\
-
-Tabell/diagram med färdsätt efter ålder, 12-17	år, 18-24	år, 25-39	år, 40-64	år, 65-74	år, 75-84	år
-
-#### Färdsätt efter sysselsättning  
-
-Tabell/diagram med färdsätt efter sysselsättning
-
-#### Färdsätt efter ärende
-
-Tabell/diagram med färdsätt efter ärende
-
-### Reslängd och trafikarbete  
-
-#### Resor med start och mål innanför kommungränsen  
-
-Tabell med genomsnittlig reslängd och uppräknat antalresor och trafikarbete för varje delområde totalt per område och färdmedel
-
-Tabell/diagram med antal resor per färdmedel efter färmedelslängd
-Graf med färdmedelsandelar över x = antal kilometer.
-
-#### Resor med start eller mål utanför kommungränsen  
-
-Liten OD-matris med vilka andra områden (tätorter, kommuner eller län, beroende på vilken nivå RVU:n tas fram för.) som respondenterna reser till. I antal procent av totala antalet resor.
-
-# Kartor och bilagor  
-
-Här följer en karta och mer detaljerade tabeller.
-
-```
-
-```
-
-## Ärendeanalys
 
 I Tabell \@ref(tab:purpose-table) och Figur \@ref(fig:purpose-diagram) beskrivs vilka ärenden som respondenterna har svarat att de uppfylde med sina resor. Huvudärendet är `r tolower(top_purpose)` och andra mest populärt ärende är `r tolower(top_purpose_2)`.
 
@@ -218,4 +224,8 @@ purp_barplot <- ggplot(rvu_purp, aes(answer, antal, fill = answer)) +
 
 purp_barplot
 
+```
+
+```{r delete_purpose_workspace, echo = FALSE, include = FALSE}
+rm(purposes, rvu_purp,rvu_purp_rep)
 ```
