@@ -96,12 +96,36 @@ labels_data <- labels_data %>%
   select(question_id,answer_id,answer)
 
 
-
 ```
 
 ## Sammanfattning
 
 ### Antal resor
+
+```{r respondant_details, echo=FALSE, include = FALSE}
+pers_group <- pers %>%
+  select(BostadTatortNamn, kon, alder) %>%
+  group_by(BostadTatortNamn) %>%
+  summarize(Respondenter = n(),
+            Man = sum(kon == "Man"), 
+            Kvinnor = sum(kon == "Kvinna"),
+            "12-24 år" = sum(alder >= 12 & alder < 25),
+            "25-64 år" = sum(alder >= 25 & alder < 65),
+            "65-84 år" = sum(alder >= 65 & alder <= 84)) %>%
+  bind_rows(summarize(.,
+                      across(where(is.numeric), sum),
+                      across(where(is.character), ~ "Totalt"))) %>%
+  rename('Tätort' = BostadTatortNamn)
+
+```
+
+
+```{r repondant-table, echo = FALSE, results = "asis"}
+kable(pers_group, caption = "Antal svar per kön och åldersgrupp")
+
+```
+
+
 
 ### Färdmedelsföredlning
 
@@ -127,29 +151,177 @@ Sammanfattning av SCB:s populationsdata, antal respondenter osv Tabell med antal
 
 ### Körkort och biltillgång
 
+
+```{r korkort, echo=FALSE, include=FALSE}
+drivers_license <- pers %>%
+  select(BostadTatortNamn, h4, h5) %>%
+  group_by(BostadTatortNamn) %>%
+  summarize(Körkort = sum(na.omit(h4) == 1),
+            Biltillgång = sum(h5 == 1) + sum(h5 == 2) + sum(h5 == 3) + sum(h5 == 4)) %>%
+  bind_rows(summarize(.,
+                      across(where(is.numeric), sum),
+                      across(where(is.character), ~ "Totalt"))) %>%
+  rename('Tätort' = BostadTatortNamn)
+
+```
+
 Tabell med körkort och bilinnehav
 
-```{r korkort, echo=FALSE}
+```{r korkort-table, echo = FALSE, results = "asis"}
+kable(drivers_license, caption = "Antal respondenter med körkort och biltillgång")
 
 ```
 
 ### Antal resor
 
+```{r antal_resor, echo=FALSE, include=FALSE}
+
+num_trips_per_pers <- rvu %>%
+  select(respondentid) %>%
+  group_by(respondentid) %>%
+  summarize(num_trips = n())
+
+
+num_trips_gender <- pers %>%
+  select(respondentid, kon) %>%
+  left_join(num_trips_per_pers, by = c("respondentid" = "respondentid")) %>%
+  group_by(kon) %>%
+  summarize("Andel personer som rest" = sum(!is.na(num_trips)) / n(),
+            "Resor per dag för alla personer" = sum(num_trips, na.rm = TRUE) / n(),
+            "Resor per dag för personer som rest" = mean(num_trips, na.rm = TRUE)) %>%
+  rename('Kön' = kon)
+
+num_trips_age <- pers %>%
+  select(respondentid, alder) %>%
+  left_join(num_trips_per_pers, by = c("respondentid" = "respondentid")) %>%
+  group_by(alder = cut(alder, breaks = c(12, 24, 64, 84)))%>%
+  summarize("Andel personer som rest" = sum(!is.na(num_trips)) / n(),
+            "Resor per dag för alla personer" = sum(num_trips, na.rm = TRUE) / n(),
+            "Resor per dag för personer som rest" = mean(num_trips, na.rm = TRUE)) %>%
+  rename('Ålder' = alder)
+
+```
+
 Tabell med andel personer som rest och deras antal resor per dag redovisat per kön och ålderskategori
+
+```{r num-trips-gender-table, echo = FALSE, results = "asis"}
+kable(num_trips_gender, digits = 2, caption = "Antal resor per dag per kön")
+
+```
+
+```{r num-trips-age-table, echo = FALSE, results = "asis"}
+kable(num_trips_age, digits = 2, caption = "Antal resor per dag per åldersgrupp")
+
+```
+
 
 ### Resornas fördelning på färdsätt
 
+```{r trips_person_mode, echo=FALSE, include=FALSE}
+
+mode_per_pers <- rvu %>%
+  select(respondentid, b6) %>%
+  group_by(respondentid) %>%
+  summarize(Bil = any(b6 == 2 | b6 == 3, na.rm = TRUE),
+            Koll = any(b6 == 1, na.rm = TRUE),
+            Cykel = any(b6 == 4, na.rm = TRUE),
+            Gång = any(b6 == 5, na.rm = TRUE),
+            Övrigt = any(b6 == 6 | b6 == 7, na.rm = TRUE),
+            made_trip = !is.na(b6))
+
+
+trip_person_mode <- pers %>%
+  select(respondentid, BostadTatortNamn)%>%
+  left_join(mode_per_pers, by = c("respondentid" = "respondentid")) %>%
+  filter(!is.na(BostadTatortNamn), made_trip) %>%
+  group_by(BostadTatortNamn) %>%
+   summarize("Bil" = mean(Bil),
+             "Koll" = mean(Koll),
+             "Cykel" = mean(Cykel),
+             "Gång" = mean(Gång)) %>%
+  rename('Tätort' = BostadTatortNamn)
+```
+
 Tabell/diagram med färdmedelsandelar per område
+
+
+```{r trips-person-mode-table, echo = FALSE, results = "asis"}
+kable(trip_person_mode, digits = 2, caption = "Resor per dag")
+```
+
+```{r trips_mode, echo=FALSE, include=FALSE}
+
+trip_mode <- pers %>%
+  select(respondentid, BostadTatortNamn)%>%
+  left_join(mode_per_pers, by = c("respondentid" = "respondentid")) %>%
+  filter(!is.na(BostadTatortNamn)) %>%
+  group_by(BostadTatortNamn) %>%
+  summarize("Bil" = sum(Bil),
+             "Koll" = sum(Koll),
+             "Cykel" = sum(Cykel),
+             "Gång" = sum(Gång)) %>%
+  bind_rows(summarize(.,
+                      across(where(is.numeric), sum),
+                      across(where(is.character), ~ "Total"))) %>%
+  rename('Tätort' = BostadTatortNamn)
+
+
+```
+
+```{r trips-mode-table, echo = FALSE, results = "asis"}
+kable(trip_mode, caption = "Färdmedel per tåtort")
+```
 
 ### Bakgrundfrågor
 
 #### Färdsätt efter kön
 
+```{r trips_gender, echo=FALSE, include=FALSE}
+
+trip_mode_gender <- pers %>%
+  select(respondentid, kon)%>%
+  left_join(mode_per_pers, by = c("respondentid" = "respondentid")) %>%
+   group_by(kon) %>%
+   summarize("Bil" = sum(Bil, na.rm = TRUE),
+             "Koll" = sum(Koll, na.rm = TRUE),
+             "Cykel" = sum(Cykel, na.rm = TRUE),
+             "Gång" = sum(Gång, na.rm = TRUE)) %>%
+  bind_rows(summarize(.,
+                      across(where(is.numeric), sum),
+                      across(where(is.character), ~"Total"))) %>%
+  rename('Kön' = kon)
+
+```
+
 Tabell/diagram med färdsätt efter kön.
+
+```{r mode-gender-table, echo = FALSE, results = "asis"}
+kable(trip_mode_gender, caption = "Färdmedel per kön")
+```
 
 #### Färdsätt efter ålder
 
+```{r trips_age, echo=FALSE, include=FALSE}
+
+trip_age <- pers %>%
+  select(respondentid, alder)%>%
+  left_join(mode_per_pers, by = c("respondentid" = "respondentid")) %>%
+  filter(!is.na(alder)) %>%
+  group_by(alder = cut(alder, breaks = c(12, 17, 24, 39, 64, 74, 84))) %>%
+  summarize("Bil" = sum(Bil, na.rm = TRUE),
+             "Koll" = sum(Koll, na.rm = TRUE),
+             "Cykel" = sum(Cykel, na.rm = TRUE),
+             "Gång" = sum(Gång, na.rm = TRUE))%>%
+  rename('Ålder' = alder)
+
+```
+
 Tabell/diagram med färdsätt efter ålder, 12-17 år, 18-24 år, 25-39 år, 40-64 år, 65-74 år, 75-84 år
+
+```{r mode-age-table, echo = FALSE, results = "asis"}
+kable(trip_age, caption = "Färdmedel per åldersgrupp")
+```
+
 
 #### Färdsätt efter sysselsättning
 
@@ -160,6 +332,10 @@ Tabell/diagram med färdsätt efter sysselsättning
 Tabell/diagram med färdsätt efter ärende
 
 ### Reslängd och trafikarbete
+
+```{r distance, echo=FALSE, include=FALSE}
+
+```
 
 #### Resor med start och mål innanför kommungränsen
 
