@@ -60,17 +60,21 @@ rvu_theme <- function() {
 
 ```{r read_data, echo=FALSE, include = FALSE}
 
-rvu <- read_delim("rvu.csv", ";", escape_double = FALSE, 
+rvu <- read_delim("habo_rvu.csv", ";", escape_double = FALSE, 
                     locale = locale(encoding = "ISO-8859-1"), 
                     trim_ws = TRUE) %>%
     mutate(
         avstand = as.numeric(str_replace(avstand, ",", "."))
     )
 
-pers <- read_delim("pers.csv", ";", escape_double = FALSE, 
+pers <- read_delim("habo_person.csv", ";", escape_double = FALSE, 
                      locale = locale(encoding = "ISO-8859-1"), 
                      trim_ws = TRUE)
 
+#Definierar om respondenter ska delas upp på kommun, tätort eller deso-nivå:
+#pers <- mutate(pers,niva = bostad_kommun_namn)
+#pers <- mutate(pers,niva = bostad_tatort_namn)
+pers <- mutate(pers,niva = bostad_deso)
 
 #Lookup-table för att hämta klartext
 variable_data <- read_excel("Variable information + Variable Values 2021-05-28.xlsx",
@@ -104,8 +108,8 @@ labels_data <- labels_data %>%
 
 ```{r respondant_details, echo=FALSE, include = FALSE}
 pers_group <- pers %>%
-  select(BostadTatortNamn, kon, alder) %>%
-  group_by(BostadTatortNamn) %>%
+  select(niva, kon, alder) %>%
+  group_by(niva) %>%
   summarize(Respondenter = n(),
             Man = sum(kon == "Man"), 
             Kvinnor = sum(kon == "Kvinna"),
@@ -115,7 +119,7 @@ pers_group <- pers %>%
   bind_rows(summarize(.,
                       across(where(is.numeric), sum),
                       across(where(is.character), ~ "Totalt"))) %>%
-  rename('Tätort' = BostadTatortNamn)
+  rename('Tätort' = niva)
 
 ```
 
@@ -154,14 +158,14 @@ Sammanfattning av SCB:s populationsdata, antal respondenter osv Tabell med antal
 
 ```{r korkort, echo=FALSE, include=FALSE}
 drivers_license <- pers %>%
-  select(BostadTatortNamn, h4, h5) %>%
-  group_by(BostadTatortNamn) %>%
+  select(niva, h4, h5) %>%
+  group_by(niva) %>%
   summarize(Körkort = sum(na.omit(h4) == 1),
             Biltillgång = sum(h5 == 1) + sum(h5 == 2) + sum(h5 == 3) + sum(h5 == 4)) %>%
   bind_rows(summarize(.,
                       across(where(is.numeric), sum),
                       across(where(is.character), ~ "Totalt"))) %>%
-  rename('Tätort' = BostadTatortNamn)
+  rename('Tätort' = niva)
 
 ```
 
@@ -231,15 +235,15 @@ mode_per_pers <- rvu %>%
 
 
 trip_person_mode <- pers %>%
-  select(respondentid, BostadTatortNamn)%>%
+  select(respondentid, niva)%>%
   left_join(mode_per_pers, by = c("respondentid" = "respondentid")) %>%
-  filter(!is.na(BostadTatortNamn), made_trip) %>%
-  group_by(BostadTatortNamn) %>%
+  filter(!is.na(niva), made_trip) %>%
+  group_by(niva) %>%
    summarize("Bil" = mean(Bil),
              "Koll" = mean(Koll),
              "Cykel" = mean(Cykel),
              "Gång" = mean(Gång)) %>%
-  rename('Tätort' = BostadTatortNamn)
+  rename('Tätort' = niva)
 ```
 
 Tabell/diagram med färdmedelsandelar per område
@@ -252,10 +256,10 @@ kable(trip_person_mode, digits = 2, caption = "Resor per dag")
 ```{r trips_mode, echo=FALSE, include=FALSE}
 
 trip_mode <- pers %>%
-  select(respondentid, BostadTatortNamn)%>%
+  select(respondentid, niva)%>%
   left_join(mode_per_pers, by = c("respondentid" = "respondentid")) %>%
-  filter(!is.na(BostadTatortNamn)) %>%
-  group_by(BostadTatortNamn) %>%
+  filter(!is.na(niva)) %>%
+  group_by(niva) %>%
   summarize("Bil" = sum(Bil),
              "Koll" = sum(Koll),
              "Cykel" = sum(Cykel),
@@ -263,7 +267,7 @@ trip_mode <- pers %>%
   bind_rows(summarize(.,
                       across(where(is.numeric), sum),
                       across(where(is.character), ~ "Total"))) %>%
-  rename('Tätort' = BostadTatortNamn)
+  rename('Tätort' = niva)
 
 
 ```
@@ -359,7 +363,7 @@ purposes <- labels_data %>%
   select(answer_id,answer)
 
 rvu_purp <- rvu %>%
-    select(resa.no, respondentid, b2) %>%
+    select(resa_nr, respondentid, b2) %>%
     left_join(purposes, by = c("b2" = "answer_id")) %>%
     group_by(answer) %>%
     summarise(antal = n())
