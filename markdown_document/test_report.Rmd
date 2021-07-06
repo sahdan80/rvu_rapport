@@ -20,7 +20,7 @@ header-includes:
 
 ```{r setup, include=FALSE}
 library(knitr)
-knitr::opts_chunk$set(echo = TRUE)
+library(kableExtra)
 library(ggplot2)
 library(tidyverse)
 library(readxl)
@@ -72,9 +72,17 @@ pers <- read_delim("habo_person.csv", ";", escape_double = FALSE,
                      trim_ws = TRUE)
 
 #Definierar om respondenter ska delas upp på kommun, tätort eller deso-nivå:
-#pers <- mutate(pers,niva = bostad_kommun_namn)
-#pers <- mutate(pers,niva = bostad_tatort_namn)
-pers <- mutate(pers,niva = bostad_deso)
+#pers <- mutate(pers,Område = bostad_kommun_namn)
+#pers <- mutate(pers,Område = bostad_tatort_namn)
+pers <- mutate(pers,Område = bostad_deso)
+
+respondent2område <- pers %>%
+  select(respondentid, Område)
+
+#Funkar inte...
+#rvu <- rvu %>%
+#  left_join(respondent2område, by = c("respondentid" = "respondentid")) %>%
+#  select(respondentid)
 
 #Lookup-table för att hämta klartext
 variable_data <- read_excel("Variable information + Variable Values 2021-05-28.xlsx",
@@ -108,8 +116,8 @@ labels_data <- labels_data %>%
 
 ```{r respondant_details, echo=FALSE, include = FALSE}
 pers_group <- pers %>%
-  select(niva, kon, alder) %>%
-  group_by(niva) %>%
+  select(Område, kon, alder) %>%
+  group_by(Område) %>%
   summarize(Respondenter = n(),
             Man = sum(kon == "Man"), 
             Kvinnor = sum(kon == "Kvinna"),
@@ -118,8 +126,7 @@ pers_group <- pers %>%
             "65-84 år" = sum(alder >= 65 & alder <= 84)) %>%
   bind_rows(summarize(.,
                       across(where(is.numeric), sum),
-                      across(where(is.character), ~ "Totalt"))) %>%
-  rename('Område' = niva)
+                      across(where(is.character), ~ "Totalt")))
 
 ```
 
@@ -158,14 +165,13 @@ Sammanfattning av SCB:s populationsdata, antal respondenter osv Tabell med antal
 
 ```{r korkort, echo=FALSE, include=FALSE}
 drivers_license <- pers %>%
-  select(niva, h4, h5) %>%
-  group_by(niva) %>%
+  select(Område, h4, h5) %>%
+  group_by(Område) %>%
   summarize(Körkort = sum(na.omit(h4) == 1),
             Biltillgång = sum(h5 == 1) + sum(h5 == 2) + sum(h5 == 3) + sum(h5 == 4)) %>%
   bind_rows(summarize(.,
                       across(where(is.numeric), sum),
-                      across(where(is.character), ~ "Totalt"))) %>%
-  rename('Område' = niva)
+                      across(where(is.character), ~ "Totalt")))
 
 ```
 
@@ -236,16 +242,15 @@ mode_per_pers <- rvu %>%
 
 
 trip_person_mode <- pers %>%
-  select(respondentid, niva)%>%
+  select(respondentid, Område)%>%
   left_join(mode_per_pers, by = c("respondentid" = "respondentid")) %>%
-  filter(!is.na(niva), made_trip) %>%
-  group_by(niva) %>%
+  filter(!is.na(Område), made_trip) %>%
+  group_by(Område) %>%
    summarize("Bil" = mean(Bil),
              "Tåg" = mean(Tåg),
              "Buss" = mean(Buss),
              "Cykel" = mean(Cykel),
-             "Gång" = mean(Gång)) %>%
-  rename('Område' = niva)
+             "Gång" = mean(Gång))
 ```
 
 Tabell/diagram med färdmedelsandelar per område
@@ -258,10 +263,10 @@ kable(trip_person_mode, digits = 2, caption = "Resor per dag")
 ```{r trips_mode, echo=FALSE, include=FALSE}
 
 trip_mode <- pers %>%
-  select(respondentid, niva)%>%
+  select(respondentid, Område)%>%
   left_join(mode_per_pers, by = c("respondentid" = "respondentid")) %>%
-  filter(!is.na(niva)) %>%
-  group_by(niva) %>%
+  filter(!is.na(Område)) %>%
+  group_by(Område) %>%
   summarize("Bil" = sum(Bil),
              "Tåg" = sum(Tåg),
              "Buss" = sum(Buss),
@@ -270,8 +275,7 @@ trip_mode <- pers %>%
              "Övrigt" = sum(Övrigt)) %>%
   bind_rows(summarize(.,
                       across(where(is.numeric), sum),
-                      across(where(is.character), ~ "Total"))) %>%
-  rename('Område' = niva)
+                      across(where(is.character), ~ "Total")))
 
 
 ```
@@ -344,9 +348,51 @@ Tabell/diagram med färdsätt efter sysselsättning
 Tabell/diagram med färdsätt efter ärende
 
 ### Reslängd och trafikarbete
+```{r travel_dist, echo=FALSE, include = FALSE}
 
-```{r distance, echo=FALSE, include=FALSE}
+#Filtrerar data och lägger till områdeskolumn
+reslangd <- rvu %>%
+  filter(!is.na(avstand)) %>%
+  rename(Färdmedel = fardmedel.kat) %>%
+  select(respondentid,Färdmedel,avstand) %>%
+  left_join(respondent2område, by = c("respondentid" = "respondentid"))
 
+#Räknar ut totalt
+reslangd_summa_tot <- reslangd %>%
+  summarise("Median" = round(median(avstand),0), "Medel" = round(mean(avstand),1), "Antal observationer" = n()) %>%
+  cbind(Färdmedel = "Totalt")
+
+#Räknar ut totalt per färdmedel
+reslangd_summa <- reslangd %>%
+  group_by(Färdmedel) %>%
+  summarise("Median" = round(median(avstand),0), "Medel" = round(mean(avstand),1), "Antal observationer" = n()) %>%
+  rbind(reslangd_summa_tot)
+
+#Räknar ut totalt per färdmedel och område
+reslangd_per_område <- reslangd %>%
+  group_by(Område,Färdmedel) %>%
+  summarise("Median" = round(median(avstand),0), "Medel" = round(mean(avstand),1), "Antal observationer" = n()) %>%
+  rbind(reslangd_summa)
+
+#Exempel som ska kunna slå ihop celler... Vi bör nog använda kableExtra för att göra snyggare grafer...
+#dt <- mtcars[1:10, 1:6]
+#kable(dt, format = "latex", caption = "Group Rows", booktabs = T) %>%
+#    kable_styling() %>%
+#    group_rows("Group 1", 4, 7) %>%
+#    group_rows("Group 2", 8, 10)
+
+#kbl(reslangd_per_område, align = "c") %>%
+#  kable_paper(full_width = F) %>%
+#  column_spec(1, bold = T) %>%
+#  collapse_rows(columns = 1:1)
+
+
+```
+
+Tabell med reslängd per område
+
+```{r travel_dist-table1, echo = FALSE, results = "asis"}
+kable(reslangd_per_område, caption = "Reslängd per område")
 ```
 
 #### Resor med start och mål innanför kommungränsen
