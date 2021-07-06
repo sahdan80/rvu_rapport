@@ -119,7 +119,7 @@ pers_group <- pers %>%
   bind_rows(summarize(.,
                       across(where(is.numeric), sum),
                       across(where(is.character), ~ "Totalt"))) %>%
-  rename('Tätort' = niva)
+  rename('Område' = niva)
 
 ```
 
@@ -165,7 +165,7 @@ drivers_license <- pers %>%
   bind_rows(summarize(.,
                       across(where(is.numeric), sum),
                       across(where(is.character), ~ "Totalt"))) %>%
-  rename('Tätort' = niva)
+  rename('Område' = niva)
 
 ```
 
@@ -224,14 +224,15 @@ kable(num_trips_age, digits = 2, caption = "Antal resor per dag per åldersgrupp
 ```{r trips_person_mode, echo=FALSE, include=FALSE}
 
 mode_per_pers <- rvu %>%
-  select(respondentid, b6) %>%
+  select(respondentid, fardmedel.kat) %>%
   group_by(respondentid) %>%
-  summarize(Bil = any(b6 == 2 | b6 == 3, na.rm = TRUE),
-            Koll = any(b6 == 1, na.rm = TRUE),
-            Cykel = any(b6 == 4, na.rm = TRUE),
-            Gång = any(b6 == 5, na.rm = TRUE),
-            Övrigt = any(b6 == 6 | b6 == 7, na.rm = TRUE),
-            made_trip = !is.na(b6))
+  summarize(Bil = any(fardmedel.kat == "Bil", na.rm = TRUE),
+            Tåg = any(fardmedel.kat == "Kollektiv_tåg", na.rm = TRUE),
+            Buss = any(fardmedel.kat == "Kollektiv_buss", na.rm = TRUE),
+            Cykel = any(fardmedel.kat == "Cykel", na.rm = TRUE),
+            Gång = any(fardmedel.kat == "Gång", na.rm = TRUE),
+            Övrigt = any(fardmedel.kat == "Annat" | fardmedel.kat == 7, na.rm = TRUE),
+            made_trip = !is.na(fardmedel.kat))
 
 
 trip_person_mode <- pers %>%
@@ -240,10 +241,11 @@ trip_person_mode <- pers %>%
   filter(!is.na(niva), made_trip) %>%
   group_by(niva) %>%
    summarize("Bil" = mean(Bil),
-             "Koll" = mean(Koll),
+             "Tåg" = mean(Tåg),
+             "Buss" = mean(Buss),
              "Cykel" = mean(Cykel),
              "Gång" = mean(Gång)) %>%
-  rename('Tätort' = niva)
+  rename('Område' = niva)
 ```
 
 Tabell/diagram med färdmedelsandelar per område
@@ -261,19 +263,21 @@ trip_mode <- pers %>%
   filter(!is.na(niva)) %>%
   group_by(niva) %>%
   summarize("Bil" = sum(Bil),
-             "Koll" = sum(Koll),
+             "Tåg" = sum(Tåg),
+             "Buss" = sum(Buss),
              "Cykel" = sum(Cykel),
-             "Gång" = sum(Gång)) %>%
+             "Gång" = sum(Gång),
+             "Övrigt" = sum(Övrigt)) %>%
   bind_rows(summarize(.,
                       across(where(is.numeric), sum),
                       across(where(is.character), ~ "Total"))) %>%
-  rename('Tätort' = niva)
+  rename('Område' = niva)
 
 
 ```
 
 ```{r trips-mode-table, echo = FALSE, results = "asis"}
-kable(trip_mode, caption = "Färdmedel per tåtort")
+kable(trip_mode, caption = "Färdmedel per tätort")
 ```
 
 ### Bakgrundfrågor
@@ -287,9 +291,11 @@ trip_mode_gender <- pers %>%
   left_join(mode_per_pers, by = c("respondentid" = "respondentid")) %>%
    group_by(kon) %>%
    summarize("Bil" = sum(Bil, na.rm = TRUE),
-             "Koll" = sum(Koll, na.rm = TRUE),
+             "Tåg" = sum(Tåg, na.rm = TRUE),
+             "Buss" = sum(Buss, na.rm = TRUE),
              "Cykel" = sum(Cykel, na.rm = TRUE),
-             "Gång" = sum(Gång, na.rm = TRUE)) %>%
+             "Gång" = sum(Gång, na.rm = TRUE),
+             "Övrigt" = sum(Övrigt, na.rm = TRUE)) %>%
   bind_rows(summarize(.,
                       across(where(is.numeric), sum),
                       across(where(is.character), ~"Total"))) %>%
@@ -313,9 +319,11 @@ trip_age <- pers %>%
   filter(!is.na(alder)) %>%
   group_by(alder = cut(alder, breaks = c(12, 17, 24, 39, 64, 74, 84))) %>%
   summarize("Bil" = sum(Bil, na.rm = TRUE),
-             "Koll" = sum(Koll, na.rm = TRUE),
+             "Tåg" = sum(Tåg, na.rm = TRUE),
+             "Buss" = sum(Buss, na.rm = TRUE),
              "Cykel" = sum(Cykel, na.rm = TRUE),
-             "Gång" = sum(Gång, na.rm = TRUE))%>%
+             "Gång" = sum(Gång, na.rm = TRUE),
+             "Övrigt" = sum(Övrigt, na.rm = TRUE))%>%
   rename('Ålder' = alder)
 
 ```
