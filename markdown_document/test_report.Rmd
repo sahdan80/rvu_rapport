@@ -79,10 +79,9 @@ pers <- mutate(pers,Område = bostad_deso)
 respondent2område <- pers %>%
   select(respondentid, Område)
 
-#Funkar inte...
-#rvu <- rvu %>%
-#  left_join(respondent2område, by = c("respondentid" = "respondentid")) %>%
-#  select(respondentid)
+#lägger till områdeskolumn i rvu-data
+rvu <- rvu %>%
+  left_join(respondent2område, by = c("respondentid" = "respondentid"))
 
 #Lookup-table för att hämta klartext
 variable_data <- read_excel("Variable information + Variable Values 2021-05-28.xlsx",
@@ -386,7 +385,14 @@ reslangd_per_område <- reslangd %>%
 #  column_spec(1, bold = T) %>%
 #  collapse_rows(columns = 1:1)
 
-
+collapse_rows_dt <- data.frame(C1 = c(rep("a", 10), rep("b", 5)),
+                 C2 = c(rep("c", 7), rep("d", 3), rep("c", 2), rep("d", 3)),
+                 C3 = 1:15,
+                 C4 = sample(c(0,1), 15, replace = TRUE))
+kbl(collapse_rows_dt, align = "c") %>%
+  kable_paper(full_width = F) %>%
+  column_spec(1, bold = T) %>%
+  collapse_rows(columns = 1:2, valign = "top")
 ```
 
 Tabell med reslängd per område
