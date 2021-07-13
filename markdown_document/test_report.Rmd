@@ -14,6 +14,21 @@ header-includes:
   - \makeatletter
   - \def\tnum@table{\tablename\thetable}
   - \makeatother
+  - \usepackage{booktabs}
+  - \usepackage{longtable}
+  - \usepackage{array}
+  - \usepackage{multirow}
+  - \usepackage{wrapfig}
+  - \usepackage{float}
+  - \usepackage{colortbl}
+  - \usepackage{pdflscape}
+  - \usepackage{tabu}
+  - \usepackage{threeparttable}
+  - \usepackage{threeparttablex}
+  - \usepackage[normalem]{ulem}
+  - \usepackage{makecell}
+  - \usepackage{xcolor}
+
 ---
 
 # Resvaneundersökning Bålsta
@@ -25,6 +40,8 @@ library(ggplot2)
 library(tidyverse)
 library(readxl)
 library(bookdown)
+library(pxweb)
+library(scales)
 ```
 
 ```{r plot-theme-creation, include = FALSE}
@@ -56,20 +73,55 @@ rvu_theme <- function() {
     )
 }
 
+options(knitr.table.format = "latex")
+
 ```
 
 ```{r read_data, echo=FALSE, include = FALSE}
 
-rvu <- read_delim("habo_rvu.csv", ";", escape_double = FALSE, 
+rvu <- read_delim("rvu_sample_2021-07-13.csv", ";", escape_double = FALSE, 
                     locale = locale(encoding = "ISO-8859-1"), 
-                    trim_ws = TRUE) %>%
-    mutate(
-        avstand = as.numeric(str_replace(avstand, ",", "."))
-    )
+                    trim_ws = TRUE)
 
-pers <- read_delim("habo_person.csv", ";", escape_double = FALSE, 
+pers <- read_delim("person_sample_2021-07-13.csv", ";", escape_double = FALSE, 
                      locale = locale(encoding = "ISO-8859-1"), 
                      trim_ws = TRUE)
+
+avst <- read_delim("rvu_restid_sample_2021-07-13.csv", ";", escape_double = FALSE, 
+                     locale = locale(encoding = "ISO-8859-1"), 
+                     trim_ws = TRUE) %>%
+  select(respondentid, resa_nr, distance_straight_line, distance_google)
+
+#joina avstånd till resor
+rvu <- rvu %>%
+  left_join(avst, by = c("respondentid", "resa_nr")) %>%
+  mutate(avstand = distance_google)
+
+#ett viktad medelvärde för året då RVU genomfördes för att få rätt befolkningsdata från SCB API
+rvu_yr <- pers %>% group_by(ar) %>% summarise(resp_in_year = n()) %>% 
+  summarise(avg_year = weighted.mean(ar, resp_in_year)) %>% 
+  round() %>% as.character()
+
+# Hämtar befolkningsdata per DESO-område från SCBs API
+table_api_address = "http://api.scb.se/OV0104/v1/doris/en/ssd/BE/BE0101/BE0101Y/FolkmDesoMedKonN"
+
+pxweb_query_list <- 
+    list("Region"=c("*"), # Use "*" to select all
+         "Medborgarskap" = c("SA"), #SAmtliga?
+         "Kon"=c("1+2"), #1:man, 2:kvinna
+         "ContentsCode"=c("000005F9"), #table name in SCB webpage
+         "Tid"=c(rvu_yr))
+px_query <- pxweb_query(pxweb_query_list)
+
+px_data <- pxweb_get(table_api_address,
+                 px_query)
+
+deso_befolkning <- as.data.frame(px_data, column.name.type = "text", variable.value.type = "text") %>%
+#kolumnerna ska heta: region (chr), citizenship (chr), sex (chr), year (chr), Population per region (chr) %>%
+  mutate(region = str_trim(region, side = "left")) %>% #removing blank character
+  rename(DESO = region,
+         Befolkning = "Population per region") %>%
+  select(DESO, Befolkning)
 
 #Definierar om respondenter ska delas upp på kommun, tätort eller deso-nivå:
 #pers <- mutate(pers,Område = bostad_kommun_namn)
@@ -77,7 +129,8 @@ pers <- read_delim("habo_person.csv", ";", escape_double = FALSE,
 pers <- mutate(pers,Område = bostad_deso)
 
 respondent2område <- pers %>%
-  select(respondentid, Område)
+  select(respondentid, Område) %>%
+  left_join(deso_befolkning, by = c("Område" = "DESO"))
 
 #Funkar inte...
 #rvu <- rvu %>%
@@ -116,6 +169,7 @@ labels_data <- labels_data %>%
 
 ```{r respondant_details, echo=FALSE, include = FALSE}
 pers_group <- pers %>%
+  mutate(Område = ifelse(is.na(Område), "Ej angivet", Område)) %>%
   select(Område, kon, alder) %>%
   group_by(Område) %>%
   summarize(Respondenter = n(),
@@ -132,13 +186,16 @@ pers_group <- pers %>%
 
 
 ```{r repondant-table, echo = FALSE, results = "asis"}
-kable(pers_group, caption = "Antal svar per kön och åldersgrupp")
-
+#kable(pers_group, caption = "Antal svar per kön och åldersgrupp")
+kbl(pers_group, caption = "Antal svar per kön och åldersgrupp", booktabs = T, linesep = "") %>%
+  kable_styling(latex_options = c("striped", "HOLD_position")) %>%
+  row_spec(nrow(pers_group), bold = T) %>% #making the Total row bold
+  row_spec(0, bold = T) #making the header row bold
 ```
 
 
 
-### Färdmedelsföredlning
+### Färdmedelsfördelning
 
 ### Trafikarbete
 
@@ -165,6 +222,7 @@ Sammanfattning av SCB:s populationsdata, antal respondenter osv Tabell med antal
 
 ```{r korkort, echo=FALSE, include=FALSE}
 drivers_license <- pers %>%
+  mutate(Område = ifelse(is.na(Område), "Ej angivet", Område)) %>%
   select(Område, h4, h5) %>%
   group_by(Område) %>%
   summarize(Körkort = sum(na.omit(h4) == 1),
@@ -178,7 +236,10 @@ drivers_license <- pers %>%
 Tabell med körkort och bilinnehav
 
 ```{r korkort-table, echo = FALSE, results = "asis"}
-kable(drivers_license, caption = "Antal respondenter med körkort och biltillgång")
+kbl(drivers_license, caption = "Antal respondenter med körkort och biltillgång", booktabs = T, linesep = "") %>%
+  kable_styling(latex_options = c("striped", "HOLD_position")) %>%
+  row_spec(nrow(drivers_license), bold = T) %>% #making the Total row bold
+  row_spec(0, bold = T) #making the Header row bold
 
 ```
 
@@ -202,25 +263,33 @@ num_trips_gender <- pers %>%
   rename('Kön' = kon)
 
 num_trips_age <- pers %>%
+  mutate(alder = ifelse(is.na(alder), "Ej angivet", alder)) %>%
   select(respondentid, alder) %>%
   left_join(num_trips_per_pers, by = c("respondentid" = "respondentid")) %>%
-  group_by(alder = cut(alder, breaks = c(12, 24, 64, 84)))%>%
+  group_by(alder = cut(alder, breaks = c(12, 24, 64, 84, 150))) %>%
   summarize("Andel personer som rest" = sum(!is.na(num_trips)) / n(),
             "Resor per dag för alla personer" = sum(num_trips, na.rm = TRUE) / n(),
             "Resor per dag för personer som rest" = mean(num_trips, na.rm = TRUE)) %>%
+  mutate(alder = c("Mellan 13 och 24", "Mellan 25 och 64", "Mellan 65 och 84", "Äldre än 65")) %>%
   rename('Ålder' = alder)
+
 
 ```
 
 Tabell med andel personer som rest och deras antal resor per dag redovisat per kön och ålderskategori
 
 ```{r num-trips-gender-table, echo = FALSE, results = "asis"}
-kable(num_trips_gender, digits = 2, caption = "Antal resor per dag per kön")
+kbl(num_trips_gender, digits = 2, caption = "Antal resor per dag per kön", booktabs = T, linesep = "") %>%
+  kable_styling(latex_options = c("striped", "HOLD_position")) %>%
+  row_spec(0, bold = T, angle = 45) #making the Header row bold and titles angled for space
+  
 
 ```
 
 ```{r num-trips-age-table, echo = FALSE, results = "asis"}
-kable(num_trips_age, digits = 2, caption = "Antal resor per dag per åldersgrupp")
+kbl(num_trips_age, digits = 2, caption = "Antal resor per dag per åldersgrupp", booktabs = T, linesep = "") %>%
+  kable_styling(latex_options = c("striped", "HOLD_position")) %>%
+  row_spec(0, bold = T, angle = 45) #making the Header row bold and titles angled for space
 
 ```
 
@@ -246,18 +315,29 @@ trip_person_mode <- pers %>%
   left_join(mode_per_pers, by = c("respondentid" = "respondentid")) %>%
   filter(!is.na(Område), made_trip) %>%
   group_by(Område) %>%
-   summarize("Bil" = mean(Bil),
-             "Tåg" = mean(Tåg),
-             "Buss" = mean(Buss),
-             "Cykel" = mean(Cykel),
-             "Gång" = mean(Gång))
+   summarize("Bil" = sum(Bil),
+             "Tåg" = sum(Tåg),
+             "Buss" = sum(Buss),
+             "Cykel" = sum(Cykel),
+             "Gång" = sum(Gång),
+             "Övrigt" = sum(Övrigt),
+             "Alla" = Bil + Tåg + Buss + Cykel + Gång + Övrigt) %>%
+  mutate("Bil" = Bil / Alla,
+          "Tåg" = Tåg / Alla,
+          "Buss" =  Buss / Alla,
+          "Cykel" = Cykel / Alla,
+          "Gång" = Gång / Alla,
+         "Övrigt" = Övrigt / Alla) %>%
+  select(-Alla)
 ```
 
 Tabell/diagram med färdmedelsandelar per område
 
 
 ```{r trips-person-mode-table, echo = FALSE, results = "asis"}
-kable(trip_person_mode, digits = 2, caption = "Resor per dag")
+kbl(trip_person_mode, digits = 2, caption = "Färdmedelsandelar per tätort", booktabs = T, linesep = "") %>%
+  kable_styling(latex_options = c("striped", "HOLD_position")) %>%
+  row_spec(0, bold = T) #making the Header row bold
 ```
 
 ```{r trips_mode, echo=FALSE, include=FALSE}
@@ -275,13 +355,16 @@ trip_mode <- pers %>%
              "Övrigt" = sum(Övrigt)) %>%
   bind_rows(summarize(.,
                       across(where(is.numeric), sum),
-                      across(where(is.character), ~ "Total")))
+                      across(where(is.character), ~ "Totalt")))
 
 
 ```
 
 ```{r trips-mode-table, echo = FALSE, results = "asis"}
-kable(trip_mode, caption = "Färdmedel per tätort")
+kbl(trip_mode, caption = "Färdmedel per tätort", booktabs = T, linesep = "") %>%
+  kable_styling(latex_options = c("striped", "HOLD_position")) %>%
+  row_spec(nrow(trip_mode), bold = T) %>% #making the Total row bold
+  row_spec(0, bold = T) #making the Header row bold)
 ```
 
 ### Bakgrundfrågor
@@ -302,7 +385,7 @@ trip_mode_gender <- pers %>%
              "Övrigt" = sum(Övrigt, na.rm = TRUE)) %>%
   bind_rows(summarize(.,
                       across(where(is.numeric), sum),
-                      across(where(is.character), ~"Total"))) %>%
+                      across(where(is.character), ~"Totalt"))) %>%
   rename('Kön' = kon)
 
 ```
@@ -310,7 +393,10 @@ trip_mode_gender <- pers %>%
 Tabell/diagram med färdsätt efter kön.
 
 ```{r mode-gender-table, echo = FALSE, results = "asis"}
-kable(trip_mode_gender, caption = "Färdmedel per kön")
+kbl(trip_mode_gender, caption = "Färdmedel per kön", booktabs = T, linesep = "") %>%
+  kable_styling(latex_options = c("striped", "HOLD_position")) %>%
+  row_spec(nrow(trip_mode_gender), bold = T) %>% #making the Total row bold
+  row_spec(0, bold = T) #making the Header row bold
 ```
 
 #### Färdsätt efter ålder
@@ -318,16 +404,26 @@ kable(trip_mode_gender, caption = "Färdmedel per kön")
 ```{r trips_age, echo=FALSE, include=FALSE}
 
 trip_age <- pers %>%
-  select(respondentid, alder)%>%
+  mutate(alder = ifelse(is.na(alder), "Ej angivet", alder)) %>%
+  select(respondentid, alder) %>%
   left_join(mode_per_pers, by = c("respondentid" = "respondentid")) %>%
   filter(!is.na(alder)) %>%
-  group_by(alder = cut(alder, breaks = c(12, 17, 24, 39, 64, 74, 84))) %>%
+  group_by(alder = cut(alder, breaks = c(12, 17, 24, 39, 64, 74, 84, 150))) %>%
   summarize("Bil" = sum(Bil, na.rm = TRUE),
              "Tåg" = sum(Tåg, na.rm = TRUE),
              "Buss" = sum(Buss, na.rm = TRUE),
              "Cykel" = sum(Cykel, na.rm = TRUE),
              "Gång" = sum(Gång, na.rm = TRUE),
-             "Övrigt" = sum(Övrigt, na.rm = TRUE))%>%
+             "Övrigt" = sum(Övrigt, na.rm = TRUE)) %>%
+  mutate(alder = c(
+    "Yngre än 18",
+    "Mellan 18 och 24",
+    "Mellan 25 och 39",
+    "Mellan 40 och 64",
+    "Mellan 65 och 74",
+    "Mellan 75 och 84",
+    "Äldre än 85"
+  )) %>%
   rename('Ålder' = alder)
 
 ```
@@ -335,7 +431,9 @@ trip_age <- pers %>%
 Tabell/diagram med färdsätt efter ålder, 12-17 år, 18-24 år, 25-39 år, 40-64 år, 65-74 år, 75-84 år
 
 ```{r mode-age-table, echo = FALSE, results = "asis"}
-kable(trip_age, caption = "Färdmedel per åldersgrupp")
+kbl(trip_age, caption = "Färdmedel per åldersgrupp", booktabs = T, linesep = "") %>%
+  kable_styling(latex_options = c("striped", "HOLD_position")) %>%
+  row_spec(0, bold = T) #making the Header row bold
 ```
 
 
@@ -359,20 +457,21 @@ reslangd <- rvu %>%
 
 #Räknar ut totalt
 reslangd_summa_tot <- reslangd %>%
-  summarise("Median" = round(median(avstand),0), "Medel" = round(mean(avstand),1), "Antal observationer" = n()) %>%
+  summarise("Median" = round(median(avstand),0), "Medel" = round(mean(avstand),1), "Antal_observationer" = n()) %>%
   cbind(Färdmedel = "Totalt")
 
 #Räknar ut totalt per färdmedel
 reslangd_summa <- reslangd %>%
   group_by(Färdmedel) %>%
-  summarise("Median" = round(median(avstand),0), "Medel" = round(mean(avstand),1), "Antal observationer" = n()) %>%
-  rbind(reslangd_summa_tot)
+  summarise("Median" = round(median(avstand),0), "Medel" = round(mean(avstand),1), "Antal_observationer" = n()) %>%
+  rbind(reslangd_summa_tot) %>%
+  mutate(Område = c("Alla"))
 
 #Räknar ut totalt per färdmedel och område
 reslangd_per_område <- reslangd %>%
   group_by(Område,Färdmedel) %>%
-  summarise("Median" = round(median(avstand),0), "Medel" = round(mean(avstand),1), "Antal observationer" = n()) %>%
-  rbind(reslangd_summa)
+  summarise("Median" = round(median(avstand),0), "Medel" = round(mean(avstand),1), "Antal_observationer" = n())
+  #rbind(reslangd_summa)
 
 #Exempel som ska kunna slå ihop celler... Vi bör nog använda kableExtra för att göra snyggare grafer...
 #dt <- mtcars[1:10, 1:6]
@@ -386,13 +485,53 @@ reslangd_per_område <- reslangd %>%
 #  column_spec(1, bold = T) %>%
 #  collapse_rows(columns = 1:1)
 
+reslangd_per_omrade_rep <- crossing(unique(reslangd$Område), unique(reslangd$Färdmedel)) %>% #creating combination of all Område and Färdmedel to have all rows in the table
+  rename(Område = "unique(reslangd$Område)",
+         Färdmedel = "unique(reslangd$Färdmedel)") %>%
+  left_join(reslangd_per_område, by = c("Område", "Färdmedel")) %>%
+  rbind(reslangd_summa) %>%
+  mutate(
+    Område = ifelse(is.na(Område), "Ej angivet", Område),
+    Färdmedel = Färdmedel,
+    Median = ifelse(is.na(Median), "-", Median),
+    Medel = ifelse(is.na(Medel), "-", Medel),
+    "Antal Observationer" = ifelse(is.na(Antal_observationer), 0, Antal_observationer)
+  ) %>%
+  select(-Antal_observationer)
 
+antal_omraden = unique(reslangd_per_omrade_rep$Område)
+
+reslangd_per_omrade_rep <- reslangd_per_omrade_rep %>%
+  select(-Område)
 ```
 
 Tabell med reslängd per område
 
 ```{r travel_dist-table1, echo = FALSE, results = "asis"}
-kable(reslangd_per_område, caption = "Reslängd per område")
+
+x <- kbl(reslangd_per_omrade_rep, longtable = T, booktabs = T, linesep = "") %>%
+  #Captions appear to create problems with longtable package, gives error "mispaced align"
+  #See here for solution, but don't know how to implement:
+  #https://tex.stackexchange.com/a/205468
+  kable_styling(latex_options = c("striped", "HOLD_position", "repeat_header"),
+                repeat_header_text = "\\textit{(fortsättning)}",
+                repeat_header_continued = "\\textit{(Fortsätter på nästa sida...)}") %>%
+  row_spec(nrow(reslangd_per_omrade_rep), bold = T) %>% #making the Total row bold
+  row_spec(0, bold = T) #making the Header row bold
+
+for (i in c(1:(length(antal_omraden)-1))){
+  x <- x %>%
+    pack_rows(antal_omraden[i], (i-1)*5+1, (i-1)*5+5,
+              hline_after = TRUE)
+}
+
+x <- x %>%
+  pack_rows("Alla", (length(antal_omraden)-1)*5+1, (length(antal_omraden)-1)*5 + 6,
+            hline_after = TRUE,
+            hline_before = TRUE)
+
+x
+
 ```
 
 #### Resor med start och mål innanför kommungränsen
@@ -439,9 +578,88 @@ rvu_purp_rep <- rvu_purp %>%
 I Tabell \@ref(tab:purpose-table) och Figur \@ref(fig:purpose-diagram) beskrivs vilka ärenden som respondenterna har svarat att de uppfylde med sina resor. Huvudärendet är `r tolower(top_purpose)` och andra mest populärt ärende är `r tolower(top_purpose_2)`.
 
 ```{r purpose-table, echo = FALSE, results = "asis"}
-kable(rvu_purp_rep, caption = "Antal resor per ärende")
+kable(rvu_purp_rep, caption = "Resärenden")
 
 ```
+
+```{r distance_mode, echo=FALSE, include=FALSE}
+rvu_distance_below_1 <- rvu %>% 
+  select(avstand, fardmedel) %>%
+  filter(!is.na(fardmedel)) %>%
+  group_by(avstand = cut(avstand, breaks = c(0, 1000))) %>%
+  summarize("Alla färdsätt" = n(),
+            "Bil" = sum(fardmedel == 2),
+            "Buss" = sum(fardmedel == 1),
+            "Cykel" = sum(fardmedel == 4),
+            "Gång" = sum(fardmedel == 5))
+  
+rvu_distance_below_3 <- rvu %>% 
+  select(avstand, fardmedel) %>%
+  filter(!is.na(fardmedel)) %>%
+  group_by(avstand = cut(avstand, breaks = c(0, 3000))) %>%
+  summarize("Alla färdsätt" = n(),
+            "Bil" = sum(fardmedel == 2),
+            "Buss" = sum(fardmedel == 1),
+            "Cykel" = sum(fardmedel == 4),
+            "Gång" = sum(fardmedel == 5))
+
+rvu_distance_below_5 <- rvu %>% 
+  select(avstand, fardmedel) %>%
+  filter(!is.na(fardmedel)) %>%
+  group_by(avstand = cut(avstand, breaks = c(0, 5000))) %>%
+  summarize("Alla färdsätt" = n(),
+            "Bil" = sum(fardmedel == 2),
+            "Buss" = sum(fardmedel == 1),
+            "Cykel" = sum(fardmedel == 4),
+            "Gång" = sum(fardmedel == 5))
+  
+rvu_distance_below_10 <- rvu %>% 
+  select(avstand, fardmedel) %>%
+  filter(!is.na(fardmedel)) %>%
+  group_by(avstand = cut(avstand, breaks = c(0, 10000))) %>%
+  summarize("Alla färdsätt" = n(),
+            "Bil" = sum(fardmedel == 2),
+            "Buss" = sum(fardmedel == 1),
+            "Cykel" = sum(fardmedel == 4),
+            "Gång" = sum(fardmedel == 5))
+  
+
+rvu_distance <- bind_rows(slice(rvu_distance_below_1, 1), 
+                          slice(rvu_distance_below_3, 1),
+                          slice(rvu_distance_below_5, 1),
+                          slice(rvu_distance_below_10, 1))
+rvu_distance$avstand <- c("<=1km", "<=3km", "<=5km", "<=10km") 
+rvu_distance <- rvu_distance %>% rename("Reslängd" = avstand)
+
+              
+```
+
+```{r distance-mode-table, echo = FALSE, results = "asis"}
+kable(rvu_distance, caption = "Reslängd per färdsätt", booktabs = T, linesep = "") %>%
+  kable_styling(latex_options = c("striped", "HOLD_position")) %>%
+  row_spec(0, bold = T) #making the Header row bold
+```
+
+```{r od_matrix, echo=FALSE, include = FALSE}
+od_matrix <- rvu %>%
+    select(start_tatort_namn, stop_tatort_namn) %>%
+    filter(!is.na(start_tatort_namn)) %>%
+    filter(!is.na(stop_tatort_namn)) %>%
+    group_by(start_tatort_namn, stop_tatort_namn) %>%
+    summarize(antal = n()) %>%
+    pivot_wider(names_from = stop_tatort_namn, values_from = antal, values_fill = 0)
+
+```
+
+```{r od-matrix-table, echo = FALSE, result="asis"}
+kable(od_matrix, caption = "O-D Matris", booktabs = T, linesep = "") %>%
+  kable_styling(latex_options = c("striped", "HOLD_position"),
+                full_width = TRUE) %>%
+  row_spec(0, bold = T, angle = 90) #making the Header row bold)
+
+write.csv(od_matrix, "od_matrix.csv")
+```
+
 
 ```{r purpose-diagram, echo = FALSE, results = "asis", fig.cap = "Antal resor per ärende."}
 purp_barplot <- ggplot(rvu_purp, aes(answer, antal, fill = answer)) + 
@@ -460,6 +678,127 @@ purp_barplot
 
 ```
 
-```{r delete_purpose_workspace, echo = FALSE, include = FALSE}
-rm(purposes, rvu_purp,rvu_purp_rep)
+```{r trip_purpose_area, echo=FALSE, include = FALSE}
+trip_purpose_all <- rvu %>%
+  select(respondentid, b2) %>%
+  filter(!is.na(b2)) %>%
+  left_join(purposes, by = c("b2" = "answer_id")) %>%
+  left_join(pers %>%
+              select(respondentid, bostad_deso),
+            by = c("respondentid" = "respondentid")) %>%
+  mutate(value = 1) %>%
+  mutate(index = 1:nrow(rvu%>%filter(!is.na(b2)))) %>%
+  spread(answer, value, fill=0) 
+
+trip_purpose_area <- trip_purpose_all %>%
+  filter(!is.na(b2)) %>%
+  group_by(bostad_deso) %>%
+  summarize(.,
+            across(c(3:ncol(trip_purpose_all)-1), sum),
+            total = n()) %>%
+  select(-index, -b2) %>%
+  rename("Område" = bostad_deso)
+  
 ```
+
+```{r trip-purpose-area-table, echo = FALSE, results = "asis"}
+kable(trip_purpose_area, caption = "Resärende per område", booktabs = T, linesep = "") %>%
+  kable_styling(latex_options = c("striped", "HOLD_position"),
+                full_width = TRUE) %>%
+  row_spec(0, bold = T, angle = 60) #making the Header row bold
+
+write.csv(trip_purpose_area, "trip_purpose_area.csv")
+
+```
+
+```{r trip_purpose_area_percent, echo=FALSE, include = FALSE}
+trip_purpose_area_percent <- trip_purpose_all %>%
+  filter(!is.na(b2)) %>%
+  group_by(bostad_deso) %>%
+  summarize(.,
+            across(c(4:ncol(trip_purpose_all)-1), ~sum(.x) / n()),
+            total = n()) %>%
+  mutate(across(c(4:ncol(trip_purpose_all)-2), ~percent(.x, accuracy = 1))) %>%
+  select(-index) %>%
+  rename("Område" = bostad_deso)
+```
+
+```{r trip-purpose-area-percent-table, echo = FALSE, results = "asis"}
+kable(trip_purpose_area_percent, caption = "Resärende per område (procent)", booktabs = T, linesep = "") %>%
+  kable_styling(latex_options = c("striped", "HOLD_position"),
+                full_width = TRUE) %>%
+  row_spec(0, bold = T, angle = 60) #making the Header row bold
+
+write.csv(trip_purpose_area, "trip_purpose_area_percent.csv")
+```
+
+```{r drivers_license_area, echo=FALSE, include = FALSE}
+drivers_license_area <- pers %>%
+  select(bostad_deso, h4) %>%
+  filter(!is.na(h4)) %>%
+  group_by(bostad_deso) %>%
+  summarize("Ja" = sum(h4 == 1, na.rm = TRUE) / n(),
+            "Nej" = sum(h4 == 2, na.rm = TRUE) / n(),
+            "Ospecificerat" = sum(h4 == 3, na.rm = TRUE),
+            "Totalt antal tillfrågade" = n()) %>%
+  mutate(across(c(2,3), ~percent(.x, accuracy = 1)))  %>%
+  rename("Område" = bostad_deso)
+```
+
+```{r drivers-license-area-table, echo = FALSE, results = "asis"}
+kable(drivers_license_area, caption = "Körkortsinnehav per område", booktabs = T, linesep = "") %>%
+  kable_styling(latex_options = c("striped", "HOLD_position")) %>%
+  #row_spec(nrow(drivers_license_area), bold = T) %>% #making the Total row bold
+  row_spec(0, bold = T) #making the Header row bold
+```
+
+```{r car_ownership_area, echo=FALSE, include = FALSE}
+car_ownership_area <- pers %>%
+  select(bostad_deso, h5) %>%
+  filter(!is.na(h5)) %>%
+  group_by(bostad_deso) %>%
+  summarize("Ja" = (sum(h5 == 1, na.rm = TRUE) + sum(h5 == 2, na.rm = TRUE) + sum(h5 == 3, na.rm = TRUE) + sum(h5 == 4, na.rm = TRUE)) / n(),
+            "Nej" = sum(h5 == 5, na.rm = TRUE) / n(),
+            "Ospecificerat" = sum(h5 == 6, na.rm = TRUE),
+            "Totalt antal tillfrågade" = n()) %>%
+  mutate(across(c(2,3), ~percent(.x, accuracy = 1))) %>%
+  rename("Område" = bostad_deso)
+```
+
+```{r car-ownership-area-table, echo = FALSE, results = "asis"}
+kable(car_ownership_area, caption = "Bilinnehav per område", booktabs = T, linesep = "") %>%
+  kable_styling(latex_options = c("striped", "HOLD_position")) %>%
+  #row_spec(nrow(drivers_license_area), bold = T) %>% #making the Total row bold
+  row_spec(0, bold = T) #making the Header row bold)
+```
+
+```{r trip_purpose_mode, echo=FALSE, include = FALSE}
+
+trip_purpose_mode <- rvu %>%
+    select(b2, fardmedel.kat) %>%
+    filter(!is.na(fardmedel.kat)) %>%
+    left_join(purposes, by = c("b2" = "answer_id")) %>%
+    group_by(answer) %>%
+    summarise("Kollektiv buss" = sum(fardmedel.kat == "Kollektiv_buss", na.rm = TRUE),
+              "Kollektiv tåg" = sum(fardmedel.kat == "Kollektiv_tåg", na.rm = TRUE),
+              "Bil" = sum(fardmedel.kat == "Bil", na.rm = TRUE),
+              "Cykel" = sum(fardmedel.kat == "Cykel", na.rm = TRUE),
+              "Gång" = sum(fardmedel.kat == "Gång", na.rm = TRUE),
+              "Annat" = sum(fardmedel.kat == "Annat", na.rm = TRUE),
+              "Total" = n()) %>%
+    bind_rows(summarize(.,
+                      across(where(is.numeric), sum),
+                      across(where(is.character), ~"Total"))) %>%
+    rename("Ärende" = answer)
+```
+
+
+```{r trip-purpose-mode-table, echo = FALSE, result="asis"}
+kable(trip_purpose_mode, caption = "Resärende per färdmedel", booktabs = T, linesep = "") %>%
+  kable_styling(latex_options = c("striped", "HOLD_position")) %>%
+  row_spec(nrow(trip_purpose_mode), bold = T) %>% #making the Total row bold
+  row_spec(0, bold = T) #making the Header row bold)
+```
+
+
+
