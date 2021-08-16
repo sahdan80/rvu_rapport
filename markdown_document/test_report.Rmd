@@ -79,15 +79,15 @@ options(knitr.table.format = "latex")
 
 ```{r read_data, echo=FALSE, include = FALSE}
 
-rvu <- read_delim("rvu_sample_2021-07-13.csv", ";", escape_double = FALSE, 
+rvu <- read_delim("rvu_sample_2021-08-09.csv", ";", escape_double = FALSE, 
                     locale = locale(encoding = "ISO-8859-1"), 
                     trim_ws = TRUE)
 
-pers <- read_delim("person_sample_2021-07-13.csv", ";", escape_double = FALSE, 
+pers <- read_delim("person_sample_2021-08-09.csv", ";", escape_double = FALSE, 
                      locale = locale(encoding = "ISO-8859-1"), 
                      trim_ws = TRUE)
 
-avst <- read_delim("rvu_restid_sample_2021-07-13.csv", ";", escape_double = FALSE, 
+avst <- read_delim("rvu_restid_sample_2021-08-09.csv", ";", escape_double = FALSE, 
                      locale = locale(encoding = "ISO-8859-1"), 
                      trim_ws = TRUE) %>%
   select(respondentid, resa_nr, distance_straight_line, distance_google)
@@ -128,9 +128,13 @@ deso_befolkning <- as.data.frame(px_data, column.name.type = "text", variable.va
 #pers <- mutate(pers,Område = bostad_tatort_namn)
 pers <- mutate(pers,Område = bostad_deso)
 
+
 respondent2område <- pers %>%
   select(respondentid, Område) %>%
   left_join(deso_befolkning, by = c("Område" = "DESO"))
+
+rvu <- rvu %>%
+  left_join(respondent2område, by = c("respondentid" = "respondentid"))
 
 #Funkar inte...
 #rvu <- rvu %>%
@@ -171,6 +175,7 @@ labels_data <- labels_data %>%
 pers_group <- pers %>%
   mutate(Område = ifelse(is.na(Område), "Ej angivet", Område)) %>%
   select(Område, kon, alder) %>%
+  
   group_by(Område) %>%
   summarize(Respondenter = n(),
             Man = sum(kon == "Man"), 
@@ -178,9 +183,11 @@ pers_group <- pers %>%
             "12-24 år" = sum(alder >= 12 & alder < 25),
             "25-64 år" = sum(alder >= 25 & alder < 65),
             "65-84 år" = sum(alder >= 65 & alder <= 84)) %>%
+  left_join(deso_befolkning, by = c("Område" = "DESO")) %>% #Lägger till befolkning per zon
   bind_rows(summarize(.,
                       across(where(is.numeric), sum),
                       across(where(is.character), ~ "Totalt")))
+
 
 ```
 
@@ -452,26 +459,69 @@ Tabell/diagram med färdsätt efter ärende
 reslangd <- rvu %>%
   filter(!is.na(avstand)) %>%
   rename(Färdmedel = fardmedel.kat) %>%
-  select(respondentid,Färdmedel,avstand) %>%
-  left_join(respondent2område, by = c("respondentid" = "respondentid"))
+  select(respondentid,Färdmedel,avstand,Område)
+  
+
+#Räknar ut hur många individer som gör resor per område
+antal_resande_individer <- rvu %>%
+  group_by(Område) %>%
+  summarise("Antal_resande_individer" = n_distinct(respondentid))
+
+#Räknar ut hur många individer som inte gör någon resa
+individer_utan_resa <- pers %>% #OBS i dagsläget saknar alla individer utan resa också område...
+  group_by(Område) %>%
+  summarise("Antal_individer" = n_distinct(respondentid)) %>%
+  left_join(antal_resande_individer, by = c("Område" = "Område")) %>%
+  mutate(Individer_utan_resa = Antal_individer-Antal_resande_individer) %>%
+  select(Område,Individer_utan_resa) 
+
+#Räknar ut hur många individer det finns per område
+individer_per_område <- reslangd %>%
+  group_by(Område) %>%
+  summarise("Antal_individer" = n_distinct(respondentid)) %>%
+  left_join(individer_utan_resa, by = c("Område" = "Område")) %>%
+  mutate(Antal_individer = Antal_individer+Individer_utan_resa) %>%
+  select(Område,Antal_individer) 
+
+#Antal resor per individ (och område, färdmedel) räknas ut
+resor_per_individ <- reslangd %>% #Resor per individ blir överskattat pga fel med att individer utan resa saknar bostadsort
+  group_by(Område,Färdmedel) %>%
+  summarise("Antal_observationer" = n()) %>%
+  left_join(individer_per_område, by = c("Område" = "Område")) %>%
+  mutate(Resor_per_individ = Antal_observationer/Antal_individer) %>%
+  left_join(deso_befolkning, by = c("Område" = "DESO")) %>%
+  mutate(Totalt_antal_resor = Befolkning*Resor_per_individ) %>%
+  select(Område,Färdmedel,Totalt_antal_resor) 
+
+#Antal resor per individ (färdmedel) räknas ut
+resor_per_individ_summa <- resor_per_individ %>%
+  group_by(Färdmedel) %>%
+  summarise("Totalt_antal_resor" = round(sum(Totalt_antal_resor,na.rm = TRUE),0))
 
 #Räknar ut totalt
 reslangd_summa_tot <- reslangd %>%
   summarise("Median" = round(median(avstand),0), "Medel" = round(mean(avstand),1), "Antal_observationer" = n()) %>%
-  cbind(Färdmedel = "Totalt")
+  cbind(Färdmedel = "Totalt") %>%
+  cbind(Område = "Alla") %>%
+  mutate(Totalt_antal_resor = sum(resor_per_individ$Totalt_antal_resor,na.rm = TRUE)) %>%
+  mutate(Trafikarbete_totalt = Totalt_antal_resor*Medel)
 
 #Räknar ut totalt per färdmedel
 reslangd_summa <- reslangd %>%
   group_by(Färdmedel) %>%
   summarise("Median" = round(median(avstand),0), "Medel" = round(mean(avstand),1), "Antal_observationer" = n()) %>%
-  rbind(reslangd_summa_tot) %>%
-  mutate(Område = c("Alla"))
+  mutate(Område = c("Alla")) %>%
+  left_join(resor_per_individ_summa, by = c("Färdmedel" = "Färdmedel")) %>%
+  mutate(Trafikarbete_totalt = Totalt_antal_resor*Medel) %>%
+  rbind(reslangd_summa_tot)
 
 #Räknar ut totalt per färdmedel och område
 reslangd_per_område <- reslangd %>%
   group_by(Område,Färdmedel) %>%
-  summarise("Median" = round(median(avstand),0), "Medel" = round(mean(avstand),1), "Antal_observationer" = n())
-  #rbind(reslangd_summa)
+  summarise("Median" = round(median(avstand),0), "Medel" = round(mean(avstand),1), "Antal_observationer" = n()) %>%
+  left_join(resor_per_individ, by = c("Område" = "Område", "Färdmedel" = "Färdmedel")) %>%
+  mutate(Trafikarbete_totalt = Totalt_antal_resor*Medel)
+
 
 #Exempel som ska kunna slå ihop celler... Vi bör nog använda kableExtra för att göra snyggare grafer...
 #dt <- mtcars[1:10, 1:6]
@@ -493,11 +543,13 @@ reslangd_per_omrade_rep <- crossing(unique(reslangd$Område), unique(reslangd$F�
   mutate(
     Område = ifelse(is.na(Område), "Ej angivet", Område),
     Färdmedel = Färdmedel,
-    Median = ifelse(is.na(Median), "-", Median),
-    Medel = ifelse(is.na(Medel), "-", Medel),
-    "Antal Observationer" = ifelse(is.na(Antal_observationer), 0, Antal_observationer)
+    Median = ifelse(is.na(Median), "-", round(Median/1000)),
+    Medel = ifelse(is.na(Medel), "-", round(Medel/1000)),
+    "Totalt antal resor" = ifelse(is.na(Totalt_antal_resor), "-", round(Totalt_antal_resor/100)*100),
+    "Trafikarbete totalt" = ifelse(is.na(Trafikarbete_totalt), "-", round(Trafikarbete_totalt/1000)),
+    "Antal observationer" = ifelse(is.na(Antal_observationer), 0, Antal_observationer)
   ) %>%
-  select(-Antal_observationer)
+  select(-Antal_observationer,-Totalt_antal_resor,-Trafikarbete_totalt)
 
 antal_omraden = unique(reslangd_per_omrade_rep$Område)
 
