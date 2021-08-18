@@ -95,7 +95,9 @@ avst <- read_delim("rvu_restid_sample_2021-08-09.csv", ";", escape_double = FALS
 #joina avstånd till resor
 rvu <- rvu %>%
   left_join(avst, by = c("respondentid", "resa_nr")) %>%
-  mutate(avstand = distance_google)
+  mutate(avstand = distance_google) %>%
+  mutate(fardmedel.kat = ifelse(fardmedel.kat == "Kollektiv_buss","Buss",fardmedel.kat)) %>%
+  mutate(fardmedel.kat = ifelse(fardmedel.kat == "Kollektiv_tåg","Tåg",fardmedel.kat))
 
 #ett viktad medelvärde för året då RVU genomfördes för att få rätt befolkningsdata från SCB API
 rvu_yr <- pers %>% group_by(ar) %>% summarise(resp_in_year = n()) %>% 
@@ -103,13 +105,13 @@ rvu_yr <- pers %>% group_by(ar) %>% summarise(resp_in_year = n()) %>%
   round() %>% as.character()
 
 # Hämtar befolkningsdata per DESO-område från SCBs API
-table_api_address = "http://api.scb.se/OV0104/v1/doris/en/ssd/BE/BE0101/BE0101Y/FolkmDesoMedKonN"
+table_api_address = "http://api.scb.se/OV0104/v1/doris/en/ssd/BE/BE0101/BE0101Y/FolkmDesoAldKonN"
 
 pxweb_query_list <- 
-    list("Region"=c("*"), # Use "*" to select all
-         "Medborgarskap" = c("SA"), #SAmtliga?
-         "Kon"=c("1+2"), #1:man, 2:kvinna
-         "ContentsCode"=c("000005F9"), #table name in SCB webpage
+    list("Region"=c('*'), # Use "*" to select all
+         "Alder" = c('15-19','20-24','25-29','30-34','35-39','40-44','45-49','50-54','55-59','60-64','65-69','70-74','75-79','80-'),
+         "Kon"=c('1','2'), #1:man, 2:kvinna
+         "ContentsCode"=c('000005FF'), #table name in SCB webpage
          "Tid"=c(rvu_yr))
 px_query <- pxweb_query(pxweb_query_list)
 
@@ -119,9 +121,20 @@ px_data <- pxweb_get(table_api_address,
 deso_befolkning <- as.data.frame(px_data, column.name.type = "text", variable.value.type = "text") %>%
 #kolumnerna ska heta: region (chr), citizenship (chr), sex (chr), year (chr), Population per region (chr) %>%
   mutate(region = str_trim(region, side = "left")) %>% #removing blank character
-  rename(DESO = region,
+  rename(Område = region,
+         Ålder = age,
+         Kön = sex,
          Befolkning = "Population per region") %>%
-  select(DESO, Befolkning)
+  select(Område, Ålder, Kön, Befolkning)
+
+deso_befolkning <- deso_befolkning %>%
+  mutate(Män = ifelse(Kön == "men", Befolkning, 0),
+         Kvinnor = ifelse(Kön == "women", Befolkning, 0),
+         Ålder_15_24 = ifelse(strtoi(str_sub(Ålder,1,2)) < 25, Befolkning, 0),
+         Ålder_25_64 = ifelse(strtoi(str_sub(Ålder,1,2)) > 20 & Ålder < 65, Befolkning, 0),
+         Ålder_65 = ifelse(strtoi(str_sub(Ålder,1,2)) > 60, Befolkning, 0)) %>%
+  group_by(Område) %>%
+  summarise(Befolkning = sum(Befolkning), Män = sum(Män), Kvinnor = sum(Kvinnor), "Ålder_15_24" = sum(Ålder_15_24), "Ålder_25_64" = sum(Ålder_25_64), "Ålder_65" = sum(Ålder_65))
 
 #Definierar om respondenter ska delas upp på kommun, tätort eller deso-nivå:
 #pers <- mutate(pers,Område = bostad_kommun_namn)
@@ -131,7 +144,7 @@ pers <- mutate(pers,Område = bostad_deso)
 
 respondent2område <- pers %>%
   select(respondentid, Område) %>%
-  left_join(deso_befolkning, by = c("Område" = "DESO"))
+  left_join(deso_befolkning, by = c("Område" = "Område"))
 
 rvu <- rvu %>%
   left_join(respondent2område, by = c("respondentid" = "respondentid"))
@@ -175,15 +188,14 @@ labels_data <- labels_data %>%
 pers_group <- pers %>%
   mutate(Område = ifelse(is.na(Område), "Ej angivet", Område)) %>%
   select(Område, kon, alder) %>%
-  
   group_by(Område) %>%
   summarize(Respondenter = n(),
             Man = sum(kon == "Man"), 
             Kvinnor = sum(kon == "Kvinna"),
-            "12-24 år" = sum(alder >= 12 & alder < 25),
+            "15-24 år" = sum(alder >= 15 & alder < 25),
             "25-64 år" = sum(alder >= 25 & alder < 65),
-            "65-84 år" = sum(alder >= 65 & alder <= 84)) %>%
-  left_join(deso_befolkning, by = c("Område" = "DESO")) %>% #Lägger till befolkning per zon
+            "65+ år" = sum(alder >= 65)) %>%
+  left_join(select(deso_befolkning, c(Område,Befolkning)), by = c("Område" = "Område")) %>% #Lägger till befolkning per zon
   bind_rows(summarize(.,
                       across(where(is.numeric), sum),
                       across(where(is.character), ~ "Totalt")))
@@ -258,7 +270,17 @@ num_trips_per_pers <- rvu %>%
   select(respondentid) %>%
   group_by(respondentid) %>%
   summarize(num_trips = n())
+  
+befolkning_per_område <- pers %>%
+  select(respondentid, kon) %>%
+  left_join(num_trips_per_pers, by = c("respondentid" = "respondentid")) %>%
+  filter(!is.na(num_trips)) %>%
+  left_join(respondent2område, by = c("respondentid" = "respondentid")) %>%
+  group_by(Område) %>%
+  summarize() %>%
+  left_join(deso_befolkning, by = c("Område" = "Område")) 
 
+vars <- c("Antal personer", "Resor per dag för alla personer")
 
 num_trips_gender <- pers %>%
   select(respondentid, kon) %>%
@@ -267,19 +289,23 @@ num_trips_gender <- pers %>%
   summarize("Andel personer som rest" = sum(!is.na(num_trips)) / n(),
             "Resor per dag för alla personer" = sum(num_trips, na.rm = TRUE) / n(),
             "Resor per dag för personer som rest" = mean(num_trips, na.rm = TRUE)) %>%
-  rename('Kön' = kon)
+  rename('Kön' = kon) %>%
+  mutate('Befolkning' = c(sum(befolkning_per_område$Kvinnor,na.rm = TRUE),sum(befolkning_per_område$Män,na.rm = TRUE),0),
+         'Antal resor' = round(.data[["Befolkning"]] * .data[["Resor per dag för alla personer"]]))
+
 
 num_trips_age <- pers %>%
   mutate(alder = ifelse(is.na(alder), "Ej angivet", alder)) %>%
   select(respondentid, alder) %>%
   left_join(num_trips_per_pers, by = c("respondentid" = "respondentid")) %>%
-  group_by(alder = cut(alder, breaks = c(12, 24, 64, 84, 150))) %>%
+  group_by(alder = cut(alder, breaks = c(12, 24, 64, 150))) %>%
   summarize("Andel personer som rest" = sum(!is.na(num_trips)) / n(),
             "Resor per dag för alla personer" = sum(num_trips, na.rm = TRUE) / n(),
             "Resor per dag för personer som rest" = mean(num_trips, na.rm = TRUE)) %>%
-  mutate(alder = c("Mellan 13 och 24", "Mellan 25 och 64", "Mellan 65 och 84", "Äldre än 65")) %>%
-  rename('Ålder' = alder)
-
+  mutate(alder = c("Mellan 15 och 24", "Mellan 25 och 64", "Mellan 65 och 84")) %>%
+  rename('Ålder' = alder) %>%
+  mutate('Befolkning' = c(sum(befolkning_per_område$Ålder_15_24,na.rm = TRUE),sum(befolkning_per_område$Ålder_25_64,na.rm = TRUE),sum(befolkning_per_område$Ålder_65,na.rm = TRUE)),
+         'Antal resor' = round(.data[["Befolkning"]] * .data[["Resor per dag för alla personer"]]))
 
 ```
 
@@ -489,7 +515,7 @@ resor_per_individ <- reslangd %>% #Resor per individ blir överskattat pga fel m
   summarise("Antal_observationer" = n()) %>%
   left_join(individer_per_område, by = c("Område" = "Område")) %>%
   mutate(Resor_per_individ = Antal_observationer/Antal_individer) %>%
-  left_join(deso_befolkning, by = c("Område" = "DESO")) %>%
+  left_join(select(deso_befolkning, c(Område,Befolkning)), by = c("Område" = "Område")) %>%
   mutate(Totalt_antal_resor = Befolkning*Resor_per_individ) %>%
   select(Område,Färdmedel,Totalt_antal_resor) 
 
@@ -522,6 +548,15 @@ reslangd_per_område <- reslangd %>%
   left_join(resor_per_individ, by = c("Område" = "Område", "Färdmedel" = "Färdmedel")) %>%
   mutate(Trafikarbete_totalt = Totalt_antal_resor*Medel)
 
+#Antalet observationer som krävs för att data ska visas (global parameter)
+tillräckligt_underlag <- 5
+
+#Döljer värden som inte ska visas
+reslangd_per_område <- reslangd_per_område %>%
+  mutate(Median= ifelse(Antal_observationer < tillräckligt_underlag, NA, Median)) %>%
+  mutate(Medel= ifelse(Antal_observationer < tillräckligt_underlag, NA, Medel)) %>%
+  mutate(Totalt_antal_resor= ifelse(Antal_observationer < tillräckligt_underlag, NA, Totalt_antal_resor)) %>%
+  mutate(Trafikarbete_totalt= ifelse(Antal_observationer < tillräckligt_underlag, NA, Trafikarbete_totalt))
 
 #Exempel som ska kunna slå ihop celler... Vi bör nog använda kableExtra för att göra snyggare grafer...
 #dt <- mtcars[1:10, 1:6]
@@ -557,7 +592,7 @@ reslangd_per_omrade_rep <- reslangd_per_omrade_rep %>%
   select(-Område)
 ```
 
-Tabell med reslängd per område
+Tabell med reslängd per område (för färdmedel med färre än `r tolower(tillräckligt_underlag)` observationer utelämnas resultatet).
 
 ```{r travel_dist-table1, echo = FALSE, results = "asis"}
 
