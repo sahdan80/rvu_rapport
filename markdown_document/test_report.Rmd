@@ -610,20 +610,21 @@ trip_person_mode <- trip_mode %>%
   select(-Alla)
 
 #Räknar ut vanligaste färdmedlet i respektive område
-trip_person_mode['max'] <- names(trip_person_mode)[2:7][max.col(trip_person_mode[2:7], "first")]
+trip_person_mode_max <- trip_person_mode %>%
+  mutate('max' = names(trip_person_mode)[2:7][max.col(trip_person_mode[2:7], "first")])
 
 #Plockar ut det vanligaste färdmedlet totalt sett
-mest_frekvent <- trip_person_mode %>%
+mest_frekvent <- trip_person_mode_max %>%
   filter(Område == "Totalt") %>%
   select(max)
 
 #Plockar ut det vanligaste färdmedlets andelar
-mest_frekvent_andel <- trip_person_mode %>%
+mest_frekvent_andel <- trip_person_mode_max %>%
   filter(Område == "Totalt") %>%
   select(pull(mest_frekvent))
 
 #Skapar en lista med områden som har ett avvikande vanligaste färdmedel
-avvikande_vanligaste_färdmedel <- trip_person_mode %>%
+avvikande_vanligaste_färdmedel <- trip_person_mode_max %>%
   filter(max != pull(mest_frekvent))
 
 #Producerar brödtext.
