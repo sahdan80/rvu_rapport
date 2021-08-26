@@ -271,9 +271,7 @@ svarsgrad_tabell <- svarsgrad %>%
   mutate("Andel av befolkningen (%)" = round(Svarsfrekvens*10)/10) %>%
   select(!Svarsfrekvens)
 
-svarsgrad_totalt <- svarsgrad %>%
-  filter(Område == "Totalt") %>%
-  select(Svarsfrekvens)
+svarsgrad_totalt <- pull(svarsgrad[nrow(svarsgrad),"Svarsfrekvens"])
 
 #Försök att filtrera ut extremvärden för att kunna skriva om dem i texten.
 svarsgrad_extremer_höga <- extremer_höga(svarsgrad,"Svarsfrekvens")
@@ -376,13 +374,9 @@ korkort_bil <- pers %>%
 
 korkort_bil <- korkort_bil
 
-körkort_totalt <- korkort_bil %>%
-  filter(Område == "Totalt") %>%
-  select("Körkort (%)")
+körkort_totalt <- pull(korkort_bil[nrow(korkort_bil),"Körkort (%)"])
 
-biltillgång_totalt <- korkort_bil %>%
-  filter(Område == "Totalt") %>%
-  select("Biltillgång (%)")
+biltillgång_totalt <- pull(korkort_bil[nrow(korkort_bil),"Biltillgång (%)"])
 
 körkort_min <- min(korkort_bil$"Körkort (%)")
 ```
@@ -614,33 +608,80 @@ trip_person_mode_max <- trip_person_mode %>%
   mutate('max' = names(trip_person_mode)[2:7][max.col(trip_person_mode[2:7], "first")])
 
 #Plockar ut det vanligaste färdmedlet totalt sett
-mest_frekvent <- trip_person_mode_max %>%
-  filter(Område == "Totalt") %>%
-  select(max)
+mest_frekvent_färdmedel <- pull(trip_person_mode_max[nrow(trip_person_mode_max),"max"])
 
 #Plockar ut det vanligaste färdmedlets andelar
-mest_frekvent_andel <- trip_person_mode_max %>%
-  filter(Område == "Totalt") %>%
-  select(pull(mest_frekvent))
+mest_frekvent_andel <- pull(trip_person_mode[nrow(trip_person_mode),mest_frekvent_färdmedel])
 
 #Skapar en lista med områden som har ett avvikande vanligaste färdmedel
 avvikande_vanligaste_färdmedel <- trip_person_mode_max %>%
-  filter(max != pull(mest_frekvent))
+  filter(max != mest_frekvent_färdmedel)
+
+
+#Sandlåda
+#test <- trip_person_mode %>%
+#  min
+
+#trip_person_mode[which.min(trip_person_mode$Bil),"Område"]
+
+
+#svarsgrad_min <- slice(svarsgrad,which.min(Svarsfrekvens))
+
+
+#Filtrerar ut extremvärden för att kunna skriva om dem i texten.
+trip_person_mode_extremer_höga <- extremer_höga(trip_person_mode,mest_frekvent_färdmedel)
+trip_person_mode_extremer_låga <- extremer_låga(trip_person_mode,mest_frekvent_färdmedel)
+
 
 #Producerar brödtext.
-text <- paste(pull(mest_frekvent)," är det vanligaste färdmedlet i ",rapportområde," med ",round(pull(mest_frekvent_andel))," procent av alla resorna.")
+text <- paste(mest_frekvent_färdmedel," är det vanligaste färdmedlet i ",rapportområde," och står för ",round(mest_frekvent_andel)," procent av alla resorna.",sep="")
 
 if (nrow(avvikande_vanligaste_färdmedel) > 0) {
-  text <- paste(text,"I zon ")
+  text <- paste(text,"I zon ",sep="")
   #Uppräkning av områden
   antal_uppräknade <- nrow(avvikande_vanligaste_färdmedel) #som minst räknas alla områden upp
   text_uppräkning <- paste(avvikande_vanligaste_färdmedel$Område[1:(antal_uppräknade)], collapse = ', ') #sträng med områden
   text_uppräkning <- stri_replace_last_fixed(text_uppräkning, ', ', ' och ') #sätter "och" i slutet av uppräkningen
   text <- paste(text,text_uppräkning," var dock ",avvikande_vanligaste_färdmedel$max[1]," det vanligaste färdmedlet. ",sep="")
 } else{
-  text <- paste(text,pull(mest_frekvent)," är också det vanligaste färdmedlet i varje område.")
+  text <- paste(text," Detta är också det vanligaste färdmedlet i varje enskilt område. ")
 }
-  
+
+#OBS hårdkodat med Bil, ska vara mest_frekvent_färdmedel
+extremer <- trip_person_mode_extremer_höga
+tabell <- trip_person_mode
+if (nrow(extremer)>1){ #om det finns extremer
+  text <- paste(text,"Särskilt högt var antalet ",mest_frekvent_färdmedel,"resor bland människor i ")
+  #Uppräkning av områden
+  antal_uppräknade <- min(nrow(extremer),max_antal_uppräknade) #som minst räknas alla områden upp
+  text_uppräkning <- paste(extremer$Område[1:(antal_uppräknade)], collapse = ', ') #sträng med områden
+  text_uppräkning <- stri_replace_last_fixed(text_uppräkning, ', ', ' och ') #sätter "och" i slutet av uppräkningen
+  text <- paste(text,text_uppräkning,", där andelen var upp emot ",round(extremer$Bil[1])," %. ",sep="")
+  } else {
+    tabell_max <- slice(tabell,which.max(Bil))
+    text <- paste(text,"Högst andel återfanns i ",tabell_max$Område,", med ",round(tabell_max$Bil)," %. ",sep="")
+}
+
+extremer <- trip_person_mode_extremer_låga
+if (nrow(extremer)>1){ #om det finns extremer
+  text <- paste(text,"Särskilt låg andel ",mest_frekvent_färdmedel,"resor återfanns i ")
+  #Uppräkning av områden
+  antal_uppräknade <- min(nrow(extremer),max_antal_uppräknade) #som minst räknas alla områden upp
+  text_uppräkning <- paste(extremer$Område[1:(antal_uppräknade)], collapse = ', ') #sträng med områden
+  text_uppräkning <- stri_replace_last_fixed(text_uppräkning, ', ', ' och ') #sätter "och" i slutet av uppräkningen
+  text <- paste(text,text_uppräkning,", där andelen var ner emot ",round(extremer$Bil[1])," %. ",sep="")
+  } else {
+    tabell_min <- slice(tabell,which.min(Bil))
+    text <- paste(text,"Lägst var andelen i ",tabell_min$Område,", där endast ",round(tabell_min$Bil)," % av resorna gjordes med ",tolower(mest_frekvent_färdmedel),". ",sep="")
+  }
+
+#För att kommentera antalet cykelresor
+if (mest_frekvent_färdmedel != "Cykel") {
+  andel_resor_cykel <- pull(trip_person_mode[nrow(trip_person_mode),"Cykel"])
+  andel_resor_cykel_max <- slice(trip_person_mode,which.max(Cykel))
+  text <- paste(text," Andelen cyklister var i genomsnitt ",round(andel_resor_cykel)," %. Högst andel cyklister återfanns i ",pull(andel_resor_cykel_max["Område"])," med en andel på ",round(pull(andel_resor_cykel_max["Cykel"]))," %. ")
+}
+
 
 ```
 `r (text)`
