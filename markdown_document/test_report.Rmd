@@ -42,6 +42,7 @@ library(readxl)
 library(bookdown)
 library(pxweb)
 library(scales)
+library(stringi)
 ```
 
 ```{r plot-theme-creation, include = FALSE}
@@ -92,6 +93,14 @@ avst <- read_delim("rvu_restid_sample_2021-08-09.csv", ";", escape_double = FALS
                      trim_ws = TRUE) %>%
   select(respondentid, resa_nr, distance_straight_line, distance_google)
 
+#Filter för att begränsa till Håbo kommun, detta ska inte behövas när de riktiga data kommer
+pers <- pers %>%
+  filter(bostad_kommun_kod == 305)
+rvu <- rvu %>%
+  filter(respondentid %in% pers$respondentid)
+avst <- avst %>%
+  filter(respondentid %in% pers$respondentid)
+
 #joina avstånd till resor
 rvu <- rvu %>%
   left_join(avst, by = c("respondentid", "resa_nr")) %>%
@@ -121,11 +130,11 @@ px_data <- pxweb_get(table_api_address,
 deso_befolkning <- as.data.frame(px_data, column.name.type = "text", variable.value.type = "text") %>%
 #kolumnerna ska heta: region (chr), citizenship (chr), sex (chr), year (chr), Population per region (chr) %>%
   mutate(region = str_trim(region, side = "left")) %>% #removing blank character
-  rename(Område = region,
+  rename(Område_kod = region,
          Ålder = age,
          Kön = sex,
          Befolkning = "Population per region") %>%
-  select(Område, Ålder, Kön, Befolkning)
+  select(Område_kod, Ålder, Kön, Befolkning)
 
 deso_befolkning <- deso_befolkning %>%
   mutate(Män = ifelse(Kön == "men", Befolkning, 0),
@@ -133,21 +142,25 @@ deso_befolkning <- deso_befolkning %>%
          Ålder_15_24 = ifelse(strtoi(str_sub(Ålder,1,2)) < 25, Befolkning, 0),
          Ålder_25_64 = ifelse(strtoi(str_sub(Ålder,1,2)) > 20 & Ålder < 65, Befolkning, 0),
          Ålder_65 = ifelse(strtoi(str_sub(Ålder,1,2)) > 60, Befolkning, 0)) %>%
-  group_by(Område) %>%
+  group_by(Område_kod) %>%
   summarise(Befolkning = sum(Befolkning), Män = sum(Män), Kvinnor = sum(Kvinnor), "Ålder_15_24" = sum(Ålder_15_24), "Ålder_25_64" = sum(Ålder_25_64), "Ålder_65" = sum(Ålder_65))
 
 #Definierar om respondenter ska delas upp på kommun, tätort eller deso-nivå:
-#pers <- mutate(pers,Område = bostad_kommun_namn)
-#pers <- mutate(pers,Område = bostad_tatort_namn)
-pers <- mutate(pers,Område = bostad_deso)
+rapportområde <- 'Bålsta kommun'
+nivå <- "deso" #'kommun' #'tatort' #global parameter
 
+pers <- mutate(pers,bostad_deso_namn = bostad_deso)
+pers <- mutate(pers,bostad_deso_kod = bostad_deso)
+
+pers <- mutate(pers,Område = .data[[paste("bostad_",nivå,"_namn",sep="")]])
+pers <- mutate(pers,Område_kod = .data[[paste("bostad_",nivå,"_kod",sep="")]])
 
 respondent2område <- pers %>%
-  select(respondentid, Område) %>%
-  left_join(deso_befolkning, by = c("Område" = "Område"))
+  select(respondentid, Område, Område_kod) %>%
+  left_join(deso_befolkning, by = c("Område_kod" = "Område_kod"))
 
 rvu <- rvu %>%
-  left_join(respondent2område, by = c("respondentid" = "respondentid"))
+  left_join(select(respondent2område, c(respondentid,Område,Område_kod)), by = c("respondentid" = "respondentid"))
 
 #Funkar inte...
 #rvu <- rvu %>%
@@ -177,41 +190,30 @@ labels_data <- labels_data %>%
   left_join(nyckel, by = "question_num") %>%
   select(question_id,answer_id,answer)
 
+#Funktioner för att hitta extremer i data
+extremer_höga <- function(table, col) {
+  table <- table %>%
+    filter(Område != "Totalt") %>%
+    rename(col = col) %>%
+    filter(!between(col, 0, median(col, na.rm=TRUE) + (2.5 * sd(col, na.rm=TRUE)))) %>%
+    arrange(desc(col))
+  return(table)
+}
+
+extremer_låga <- function(table, col) {
+  table <- table %>%
+    filter(Område != "Totalt") %>%
+    rename(col = col) %>%
+    filter(!between(col, median(col, na.rm=TRUE) - (2.5 * sd(col, na.rm=TRUE)), 100)) %>%
+    arrange(col)
+  return(table)
+}
 
 ```
 
 ## Sammanfattning
 
 ### Antal resor
-
-```{r respondant_details, echo=FALSE, include = FALSE}
-pers_group <- pers %>%
-  mutate(Område = ifelse(is.na(Område), "Ej angivet", Område)) %>%
-  select(Område, kon, alder) %>%
-  group_by(Område) %>%
-  summarize(Respondenter = n(),
-            Man = sum(kon == "Man"), 
-            Kvinnor = sum(kon == "Kvinna"),
-            "15-24 år" = sum(alder >= 15 & alder < 25),
-            "25-64 år" = sum(alder >= 25 & alder < 65),
-            "65+ år" = sum(alder >= 65)) %>%
-  left_join(select(deso_befolkning, c(Område,Befolkning)), by = c("Område" = "Område")) %>% #Lägger till befolkning per zon
-  bind_rows(summarize(.,
-                      across(where(is.numeric), sum),
-                      across(where(is.character), ~ "Totalt")))
-
-
-```
-
-
-```{r repondant-table, echo = FALSE, results = "asis"}
-#kable(pers_group, caption = "Antal svar per kön och åldersgrupp")
-kbl(pers_group, caption = "Antal svar per kön och åldersgrupp", booktabs = T, linesep = "") %>%
-  kable_styling(latex_options = c("striped", "HOLD_position")) %>%
-  row_spec(nrow(pers_group), bold = T) %>% #making the Total row bold
-  row_spec(0, bold = T) #making the header row bold
-```
-
 
 
 ### Färdmedelsfördelning
@@ -226,40 +228,213 @@ kbl(pers_group, caption = "Antal svar per kön och åldersgrupp", booktabs = T, 
 
 ## Inledning
 
+Följande resvanerapport har tagits fram för att öka kunskapen om dagens resmönster för olika trafikantgrupper i `r (rapportområde)`. Rapportens resultat avser att ge en bild av hur resandet ser ut en genomsnittlig vardag. Resultatet utgör ett viktigt underlag för att planera för en hållbar tillväxt och ett hållbart resande. Rapporten är skapad genom ett automatiserat skript, framtaget av WSP på uppdrag av Region Uppsala. Skriptet läser och sammanställer data från kollektivtrafikbarometern, samt presenterar och kommenterar resultaten i löpande text. 
+
 ### Metod
 
-Hur dokumentet är skapat och generellt om kollbar
+Kollektivtrafikbarometern är en nationell undersökning som riktar sig till den svenska allmänheten mellan 15 och 85 år, både de som använder kollektivtrafiken och de som inte gör det. Ett slumpmässigt individurval ur ett befolkningsregister har genomförts utifrån postnummerområden specificerade för varje deltagande organisation.
 
-### Population och urval
+De deltagande organisationerna motsvara i regel majoriteten av landets 23 regioner. Antalet insamlade enkätsvar per
+deltagande organisation varierar normalt mellan cirka 1 000 och 10 000.
 
-Sammanfattning av SCB:s populationsdata, antal respondenter osv Tabell med antal boende och antal respondenter
+Skriptet som har använts för att ta fram denna rapport är skrivet i programmeringsspråket R. Skriptet läser av automatiskt förbearbetad rådata från enkätundersökningen, kompletterad med beräknade reslängder från Google Maps API.
 
-## Resultat
-
-### Körkort och biltillgång
-
-
-```{r korkort, echo=FALSE, include=FALSE}
-drivers_license <- pers %>%
+```{r respondant_details, echo=FALSE, include = FALSE}
+respondenter <- pers %>%
   mutate(Område = ifelse(is.na(Område), "Ej angivet", Område)) %>%
-  select(Område, h4, h5) %>%
+  select(Område, Område_kod, kon, alder) %>%
   group_by(Område) %>%
-  summarize(Körkort = sum(na.omit(h4) == 1),
-            Biltillgång = sum(h5 == 1) + sum(h5 == 2) + sum(h5 == 3) + sum(h5 == 4)) %>%
-  bind_rows(summarize(.,
+  summarize(Respondenter = n(),
+            Man = sum(kon == "Man"), 
+            Kvinnor = sum(kon == "Kvinna"),
+            "15-24 år" = sum(alder >= 15 & alder < 25),
+            "25-64 år" = sum(alder >= 25 & alder < 65),
+            "65-85 år" = sum(alder >= 65),
+            Område_kod = first(Område_kod)) %>%
+  left_join(select(deso_befolkning, c(Område_kod,Befolkning)), by = c("Område_kod" = "Område_kod")) %>% #Lägger till befolkning per zon
+  mutate(Befolkning = replace_na(Befolkning,0)) %>%
+  select(-one_of("Område_kod")) %>%
+  bind_rows(summarize(., 
                       across(where(is.numeric), sum),
                       across(where(is.character), ~ "Totalt")))
 
+respondenter_tabell <- respondenter %>%
+  select(!Befolkning)
+
+svarsgrad <- respondenter %>%
+  filter(Område != "Ej angivet") %>%
+  #filter(Område != "Totalt") %>% #Först bör genomsnittlig andel svarande sparas
+  mutate(Svarsfrekvens = Respondenter/Befolkning*100) %>%
+  select(Område,Respondenter,Befolkning,Svarsfrekvens)
+
+svarsgrad_tabell <- svarsgrad %>%
+  mutate("Andel av befolkningen (%)" = round(Svarsfrekvens*10)/10) %>%
+  select(!Svarsfrekvens)
+
+svarsgrad_totalt <- svarsgrad %>%
+  filter(Område == "Totalt") %>%
+  select(Svarsfrekvens)
+
+#Försök att filtrera ut extremvärden för att kunna skriva om dem i texten.
+svarsgrad_extremer_höga <- extremer_höga(svarsgrad,"Svarsfrekvens")
+svarsgrad_extremer_låga <- extremer_låga(svarsgrad,"Svarsfrekvens")
+
+##### Stycke som presenterar svarsgraden #####
+text <- paste("Andelen svarande av befolkningen (15 år och äldre) var i genomsnitt ",round(svarsgrad_totalt*10)/10," %.")
+
+max_antal_uppräknade <- 3 #hur många områden som maximalt ska lyftas fram
+
+extremer <- svarsgrad_extremer_höga
+if (nrow(extremer)>1){ #om det finns extremer
+  #slice(which.max(Svarsfrekvens))
+  text <- paste(text,"Särskilt hög var andelen svarande i ")
+  #Uppräkning av områden
+  antal_uppräknade <- min(nrow(extremer),max_antal_uppräknade) #som minst räknas alla områden upp
+  text_uppräkning <- paste(extremer$Område[1:(antal_uppräknade)], collapse = ', ') #sträng med områden
+  text_uppräkning <- stri_replace_last_fixed(text_uppräkning, ', ', ' och ') #sätter "och" i slutet av uppräkningen
+  text <- paste(text,text_uppräkning,", där andelen svarande var upp emot ",round(extremer$Svarsfrekvens[1])," %. ",sep="")
+  } else {
+    svarsgrad_max <- slice(svarsgrad,which.max(Svarsfrekvens))
+    text <- paste(text,"Högst andel svarande återfinns i ",svarsgrad_max$Område,", där andelen svarande var ",round(svarsgrad_max$Svarsfrekvens)," %.",sep="")
+}
+
+extremer <- svarsgrad_extremer_låga
+if (nrow(extremer)>1){ #om det finns extremer
+  #slice(which.max(Svarsfrekvens))
+  text <- paste(text,"Särskilt hög andel svarande återfinns i ")
+  #Uppräkning av områden
+  antal_uppräknade <- min(nrow(extremer),max_antal_uppräknade) #som minst räknas alla områden upp
+  text_uppräkning <- paste(extremer$Område[1:(antal_uppräknade)], collapse = ', ') #sträng med områden
+  text_uppräkning <- stri_replace_last_fixed(text_uppräkning, ', ', ' och ') #sätter "och" i slutet av uppräkningen
+  text <- paste(text,text_uppräkning,", där andelen svarande var upp emot ",round(extremer$Svarsfrekvens[1])," %. ",sep="")
+  } else {
+    svarsgrad_min <- slice(svarsgrad,which.min(Svarsfrekvens))
+    text <- paste(text,"Lägst andel svarande återfinns i ",svarsgrad_min$Område,", där andelen svarande var nära ",round(svarsgrad_min$Svarsfrekvens)," %.",sep="")
+  }
+
+text <- paste(text,"Notera att hela befolkningen inte har blivit tillfrågad. Svarsfrekvensen bland de tillfrågade är inte känd.")
+
+#textvariabler till kommande textstycke
+if (nivå == 'deso')
+  nivånivå <- 'DeSO-nivå'
+if (nivå == 'tätort')
+  nivånivå <- 'tätorts'
+if (nivå == 'kommun')
+  nivånivå <- 'kommun'
+
+antal_individer <- nrow(pers)
+
+```
+### Population och urval
+
+Kollektivtrafiksbarometerns attityd- och resvaneundersökning är en årlig och nationell enkätundersökning som strävar efter att fånga ett representativt urval av befolkningen i respektive region. För varje respondent lagras egenskaper som kön, ålder och koordinater till hemmet. I denna rapport har resultaten sammanfattats uppdelade geografiskt på `r (nivånivå)`.
+
+Ur undersökningen har de `r (antal_individer)` respondenter som bor i `r (rapportområde)` valts ut. I Tabell \@ref(tab:svarsfrekvens-table) återfinns befolkning, antal respondenter och andelen svarande av befolkningen. Respondenternas kön och ålder per område finns redovisade i Tabell \@ref(tab:repondant-table).
+
+```{r svarsfrekvens-table, echo = FALSE, results = "asis"}
+kbl(svarsgrad_tabell, caption = "Antal svar jämfört med befolkningen (15 år och äldre) i respektive område", booktabs = T, linesep = "") %>%
+  kable_styling(latex_options = c("striped", "HOLD_position")) %>%
+  row_spec(nrow(svarsgrad_tabell), bold = T) %>% #making the Total row bold
+  row_spec(0, bold = T) #making the header row bold
 ```
 
-Tabell med körkort och bilinnehav
+`r (text)` 
 
-```{r korkort-table, echo = FALSE, results = "asis"}
-kbl(drivers_license, caption = "Antal respondenter med körkort och biltillgång", booktabs = T, linesep = "") %>%
+```{r repondant-table, echo = FALSE, results = "asis"}
+#kable(respondenter, caption = "Antal svar per kön och åldersgrupp")
+kbl(respondenter_tabell, caption = "Antal svar per kön och åldersgrupp", booktabs = T, linesep = "") %>%
   kable_styling(latex_options = c("striped", "HOLD_position")) %>%
-  row_spec(nrow(drivers_license), bold = T) %>% #making the Total row bold
-  row_spec(0, bold = T) #making the Header row bold
+  row_spec(nrow(respondenter_tabell), bold = T) %>% #making the Total row bold
+  row_spec(0, bold = T) #making the header row bold
+```
+Eftersom svarsbenägenheten varierar mellan olika grupper av invånare kan viss skevhet i representationen uppstå, trots att urvalet från början gjorts på ett representativt sätt. Genom att använda en mixad insamlingsmetod, där fysisk post, telefon och sms har använts för att nå respondenterna, har svarsunderlaget kunnat hålla en bättre representativitet än traditionella underskningar. Viktning mot kön, ålder och urvalsområde har därför inte ansetts vara nödvändig.
 
+## Resultat
+
+Nedan presenteras sammanställningen av resultat från resvaneundersökningen.
+
+### Körkort och biltillgång
+
+Valet att färdas med bil, buss eller cykel eller att promenera är beroende av en mängd faktorer 
+såsom transportsystemets utbud och standard, attityder och kunskap, restriktioner och vanor. 
+Avgörande för färdmedelsvalet är körkortsinnehav och biltillgång.
+
+```{r korkort, echo=FALSE, include=FALSE}
+korkort_bil <- pers %>%
+  mutate(Område = ifelse(is.na(Område), "Ej angivet", Område)) %>%
+  select(Område, h4, h5) %>%
+  group_by(Område) %>%
+  summarize(korkort_bil = sum(na.omit(h4) == 1),
+            Biltillgång = sum(h5 == 1) + sum(h5 == 2) + sum(h5 == 3) + sum(h5 == 4),
+            Antal_individer = n()) %>%
+  bind_rows(summarize(.,
+                      across(where(is.numeric), sum),
+                      across(where(is.character), ~ "Totalt"))) %>%
+  mutate("Körkort (%)" = korkort_bil/Antal_individer*100,
+         "Biltillgång (%)" = Biltillgång/Antal_individer*100) %>%
+  select(Område, "Körkort (%)", "Biltillgång (%)")
+
+korkort_bil <- korkort_bil
+
+körkort_totalt <- korkort_bil %>%
+  filter(Område == "Totalt") %>%
+  select("Körkort (%)")
+
+biltillgång_totalt <- korkort_bil %>%
+  filter(Område == "Totalt") %>%
+  select("Biltillgång (%)")
+
+körkort_min <- min(korkort_bil$"Körkort (%)")
+```
+
+```{r korkort_text, echo=FALSE, include=FALSE}
+#Försök att filtrera ut extremvärden för att kunna skriva om dem i texten.
+korkort_bil_extremer_höga <- extremer_höga(korkort_bil,"Körkort (%)")
+korkort_bil_extremer_låga <- extremer_låga(korkort_bil,"Körkort (%)")
+
+##### Stycke som presenterar svarsgraden #####
+text <- ""
+
+max_antal_uppräknade <- 3 #hur många områden som maximalt ska lyftas fram
+
+extremer <- korkort_bil_extremer_höga
+if (nrow(extremer)>1){ #om det finns extremer
+  #slice(which.max(Svarsfrekvens))
+  text <- paste(text,"Särskilt högt var bilinnehavet bland människor i ")
+  #Uppräkning av områden
+  antal_uppräknade <- min(nrow(extremer),max_antal_uppräknade) #som minst räknas alla områden upp
+  text_uppräkning <- paste(extremer$Område[1:(antal_uppräknade)], collapse = ', ') #sträng med områden
+  text_uppräkning <- stri_replace_last_fixed(text_uppräkning, ', ', ' och ') #sätter "och" i slutet av uppräkningen
+  text <- paste(text,text_uppräkning,", där andelen var upp emot ",round(extremer$Svarsfrekvens[1])," %. ",sep="")
+  } else {
+    svarsgrad_max <- slice(svarsgrad,which.max(Svarsfrekvens))
+    text <- paste(text,"Högst bilinnehav återfanns i ",svarsgrad_max$Område,", med ",round(svarsgrad_max$Svarsfrekvens)," %.",sep="")
+}
+
+extremer <- korkort_bil_extremer_låga
+if (nrow(extremer)>1){ #om det finns extremer
+  #slice(which.max(Svarsfrekvens))
+  text <- paste(text,"Särskilt låg andel körkortsinnehavare återfanns i ")
+  #Uppräkning av områden
+  antal_uppräknade <- min(nrow(extremer),max_antal_uppräknade) #som minst räknas alla områden upp
+  text_uppräkning <- paste(extremer$Område[1:(antal_uppräknade)], collapse = ', ') #sträng med områden
+  text_uppräkning <- stri_replace_last_fixed(text_uppräkning, ', ', ' och ') #sätter "och" i slutet av uppräkningen
+  text <- paste(text,text_uppräkning,", där andelen var ner emot ",round(extremer$Svarsfrekvens[1])," %. ",sep="")
+  } else {
+    svarsgrad_min <- slice(svarsgrad,which.min(Svarsfrekvens))
+    text <- paste(text,"Lägst var bilinnehavet i ",svarsgrad_min$Område,", där andelen var nära ",round(svarsgrad_min$Svarsfrekvens)," %. ",sep="")
+  }
+
+```
+
+I `r (rapportområde)` hade `r round(körkort_totalt)` procent av respondenterna körkort och `r round(biltillgång_totalt)` procent tillgång till bil. `r (text)` . De som hade tillgång till bil varierade mellan  `r round(min(korkort_bil$"Biltillgång (%)"))` och `r round(max(korkort_bil$"Biltillgång (%)"))` procent. I Tabell \@ref(tab:korkort-bil-table) framgår körkortsinnehav och biltillgång för respektive område.
+
+
+```{r korkort-bil-table, echo = FALSE, results = "asis"}
+kbl(korkort_bil, caption = "Antal respondenter med körkort och biltillgång", booktabs = T, linesep = "",digits=1) %>%
+  kable_styling(latex_options = c("striped", "HOLD_position")) %>%
+  row_spec(nrow(korkort_bil), bold = T) %>% #making the Total row bold
+  row_spec(0, bold = T) #making the Header row bold
 ```
 
 ### Antal resor
@@ -276,9 +451,9 @@ befolkning_per_område <- pers %>%
   left_join(num_trips_per_pers, by = c("respondentid" = "respondentid")) %>%
   filter(!is.na(num_trips)) %>%
   left_join(respondent2område, by = c("respondentid" = "respondentid")) %>%
-  group_by(Område) %>%
+  group_by(Område,Område_kod) %>%
   summarize() %>%
-  left_join(deso_befolkning, by = c("Område" = "Område")) 
+  left_join(deso_befolkning, by = c("Område_kod" = "Område_kod")) 
 
 vars <- c("Antal personer", "Resor per dag för alla personer")
 
@@ -286,10 +461,10 @@ num_trips_gender <- pers %>%
   select(respondentid, kon) %>%
   left_join(num_trips_per_pers, by = c("respondentid" = "respondentid")) %>%
   group_by(kon) %>%
-  summarize("Andel personer som rest" = sum(!is.na(num_trips)) / n(),
+  summarize("Andel personer som rest (%)" = 100*sum(!is.na(num_trips)) / n(),
             "Resor per dag för alla personer" = sum(num_trips, na.rm = TRUE) / n(),
             "Resor per dag för personer som rest" = mean(num_trips, na.rm = TRUE)) %>%
-  rename('Kön' = kon) %>%
+  rename('Grupp' = kon) %>%
   mutate('Befolkning' = c(sum(befolkning_per_område$Kvinnor,na.rm = TRUE),sum(befolkning_per_område$Män,na.rm = TRUE),0),
          'Antal resor' = round(.data[["Befolkning"]] * .data[["Resor per dag för alla personer"]]))
 
@@ -299,33 +474,101 @@ num_trips_age <- pers %>%
   select(respondentid, alder) %>%
   left_join(num_trips_per_pers, by = c("respondentid" = "respondentid")) %>%
   group_by(alder = cut(alder, breaks = c(12, 24, 64, 150))) %>%
-  summarize("Andel personer som rest" = sum(!is.na(num_trips)) / n(),
+  summarize("Andel personer som rest (%)" = 100*sum(!is.na(num_trips)) / n(),
             "Resor per dag för alla personer" = sum(num_trips, na.rm = TRUE) / n(),
             "Resor per dag för personer som rest" = mean(num_trips, na.rm = TRUE)) %>%
-  mutate(alder = c("Mellan 15 och 24", "Mellan 25 och 64", "Mellan 65 och 84")) %>%
-  rename('Ålder' = alder) %>%
+  mutate(alder = c("Mellan 15 och 24", "Mellan 25 och 64", "Mellan 65 och 85")) %>%
+  rename('Grupp' = alder) %>%
   mutate('Befolkning' = c(sum(befolkning_per_område$Ålder_15_24,na.rm = TRUE),sum(befolkning_per_område$Ålder_25_64,na.rm = TRUE),sum(befolkning_per_område$Ålder_65,na.rm = TRUE)),
          'Antal resor' = round(.data[["Befolkning"]] * .data[["Resor per dag för alla personer"]]))
 
+num_trips_all <- pers %>%
+  select(respondentid) %>%
+  left_join(num_trips_per_pers, by = c("respondentid" = "respondentid")) %>%
+  #group_by(kon) %>%
+  summarize("Andel personer som rest (%)" = 100*sum(!is.na(num_trips)) / n(),
+            "Resor per dag för alla personer" = sum(num_trips, na.rm = TRUE) / n(),
+            "Resor per dag för personer som rest" = mean(num_trips, na.rm = TRUE)) %>%
+  mutate('Grupp' = "Alla",
+         'Befolkning' = sum(befolkning_per_område$Befolkning,na.rm = TRUE),
+         'Antal resor' = round(.data[["Befolkning"]] * .data[["Resor per dag för alla personer"]]))
+
+num_trips_rep <- num_trips_gender %>%
+  rbind(num_trips_age) %>%
+  rbind(num_trips_all)
+
+num_trips_män <- num_trips_gender %>%
+  filter(Grupp == "Man") %>%
+  select("Resor per dag för alla personer")
+
+num_trips_kvinnor <- num_trips_gender %>%
+  filter(Grupp == "Kvinna") %>%
+  select("Resor per dag för alla personer")
+
+avvikelse <- abs((num_trips_män-num_trips_kvinnor)/(num_trips_kvinnor+num_trips_män))
+if (num_trips_män > num_trips_kvinnor) {
+  kön1 <- "män"
+  kön2 <- "kvinnor"
+} else {
+  kön1 <- "kvinnor"
+  kön2 <- "män"
+}
+
+konjunktion <- ""
+if (avvikelse>0.032) {
+  if (avvikelse>0.064) {
+    text <- paste("I genomsnitt gjorde ",kön1," mycket fler resor än ",kön2,". ",sep="")
+  } else {
+    text <- paste("I genomsnitt gjorde ",kön1," något fler resor än ",kön2,". ",sep="")
+  }} else {
+    text <- paste("I genomsnitt reste både ",kön1," och ",kön2," i lika stor utsträckning. ",sep="")
+    konjunktion <- "heller "
+}
+
+avvikelse <- sd(num_trips_age$"Resor per dag för alla personer", na.rm=TRUE)
+if (avvikelse<0.1) {
+  text <- paste(text,"De olika åldersgrupperna skilde sig inte ",konjunktion,"märkbart i antal resor per dag. ",sep="")
+}
+
 ```
 
-Tabell med andel personer som rest och deras antal resor per dag redovisat per kön och ålderskategori
+En genomsnittlig dag genomfördes `r round(num_trips_all$"Antal resor",0)` resor i `r (rapportområde)` av personer 15–85 år bosatta inom det undersökta utredningsområdet. I Tabell \@ref(tab:num-trips-table) framgår andel personer som rest och deras antal resor per dag redovisat per kön och ålderskategori.
 
-```{r num-trips-gender-table, echo = FALSE, results = "asis"}
-kbl(num_trips_gender, digits = 2, caption = "Antal resor per dag per kön", booktabs = T, linesep = "") %>%
-  kable_styling(latex_options = c("striped", "HOLD_position")) %>%
-  row_spec(0, bold = T, angle = 45) #making the Header row bold and titles angled for space
-  
+```{r num-trips-table, echo = FALSE, results = "asis"}
+# kbl(num_trips_gender, digits = 2, caption = "Antal resor per dag per kön", booktabs = T, linesep = "") %>%
+#   kable_styling(latex_options = c("striped", "HOLD_position")) %>%
+#   row_spec(0, bold = T, angle = 45) #making the Header row bold and titles angled for space
+ 
+x <- kbl(num_trips_rep, digits = 1, longtable = T, booktabs = T, linesep = "",caption = "Antal resor per dag per kön") %>%
+  #Captions appear to create problems with longtable package, gives error "mispaced align"
+  #See here for solution, but don't know how to implement:
+  #https://tex.stackexchange.com/a/205468
+  kable_styling(latex_options = c("striped", "HOLD_position", "repeat_header"),
+                repeat_header_text = "\\textit{(fortsättning)}",
+                repeat_header_continued = "\\textit{(Fortsätter på nästa sida...)}") %>%
+  #row_spec(nrow(reslangd_per_omrade_rep), bold = T) %>% #making the Total row bold
+  row_spec(0, bold = T) %>% #making the Header row bold
+  column_spec(2:4, width = "2.5cm") %>%
+  column_spec(1:1, width = "2.7cm") %>%
+  column_spec(5:6, width = "2cm")
+
+for (i in c(1:2)){
+  x <- x %>%
+    pack_rows(c('Kön','Ålder')[i], (i-1)*3+1, (i-1)*3+3,
+              hline_after = TRUE)
+}
+
+
+ x <- x %>%
+   pack_rows("Totalt", 7, 7,
+             hline_after = TRUE,
+             hline_before = TRUE)
+
+x
 
 ```
 
-```{r num-trips-age-table, echo = FALSE, results = "asis"}
-kbl(num_trips_age, digits = 2, caption = "Antal resor per dag per åldersgrupp", booktabs = T, linesep = "") %>%
-  kable_styling(latex_options = c("striped", "HOLD_position")) %>%
-  row_spec(0, bold = T, angle = 45) #making the Header row bold and titles angled for space
-
-```
-
+ `r (text)`
 
 ### Resornas fördelning på färdsätt
 
@@ -335,45 +578,11 @@ mode_per_pers <- rvu %>%
   select(respondentid, fardmedel.kat) %>%
   group_by(respondentid) %>%
   summarize(Bil = any(fardmedel.kat == "Bil", na.rm = TRUE),
-            Tåg = any(fardmedel.kat == "Kollektiv_tåg", na.rm = TRUE),
-            Buss = any(fardmedel.kat == "Kollektiv_buss", na.rm = TRUE),
+            Tåg = any(fardmedel.kat == "Tåg", na.rm = TRUE),
+            Buss = any(fardmedel.kat == "Buss", na.rm = TRUE),
             Cykel = any(fardmedel.kat == "Cykel", na.rm = TRUE),
             Gång = any(fardmedel.kat == "Gång", na.rm = TRUE),
-            Övrigt = any(fardmedel.kat == "Annat" | fardmedel.kat == 7, na.rm = TRUE),
-            made_trip = !is.na(fardmedel.kat))
-
-
-trip_person_mode <- pers %>%
-  select(respondentid, Område)%>%
-  left_join(mode_per_pers, by = c("respondentid" = "respondentid")) %>%
-  filter(!is.na(Område), made_trip) %>%
-  group_by(Område) %>%
-   summarize("Bil" = sum(Bil),
-             "Tåg" = sum(Tåg),
-             "Buss" = sum(Buss),
-             "Cykel" = sum(Cykel),
-             "Gång" = sum(Gång),
-             "Övrigt" = sum(Övrigt),
-             "Alla" = Bil + Tåg + Buss + Cykel + Gång + Övrigt) %>%
-  mutate("Bil" = Bil / Alla,
-          "Tåg" = Tåg / Alla,
-          "Buss" =  Buss / Alla,
-          "Cykel" = Cykel / Alla,
-          "Gång" = Gång / Alla,
-         "Övrigt" = Övrigt / Alla) %>%
-  select(-Alla)
-```
-
-Tabell/diagram med färdmedelsandelar per område
-
-
-```{r trips-person-mode-table, echo = FALSE, results = "asis"}
-kbl(trip_person_mode, digits = 2, caption = "Färdmedelsandelar per tätort", booktabs = T, linesep = "") %>%
-  kable_styling(latex_options = c("striped", "HOLD_position")) %>%
-  row_spec(0, bold = T) #making the Header row bold
-```
-
-```{r trips_mode, echo=FALSE, include=FALSE}
+            Övrigt = any(fardmedel.kat == "Annat" | fardmedel.kat == 7, na.rm = TRUE))
 
 trip_mode <- pers %>%
   select(respondentid, Område)%>%
@@ -385,13 +594,66 @@ trip_mode <- pers %>%
              "Buss" = sum(Buss),
              "Cykel" = sum(Cykel),
              "Gång" = sum(Gång),
-             "Övrigt" = sum(Övrigt)) %>%
+             "Övrigt" = sum(Övrigt),
+             "Alla" = Bil + Tåg + Buss + Cykel + Gång + Övrigt) %>%
   bind_rows(summarize(.,
                       across(where(is.numeric), sum),
                       across(where(is.character), ~ "Totalt")))
 
+trip_person_mode <- trip_mode %>%
+  mutate("Bil" = 100*Bil / Alla,
+          "Tåg" = 100*Tåg / Alla,
+          "Buss" =  100*Buss / Alla,
+          "Cykel" = 100*Cykel / Alla,
+          "Gång" = 100*Gång / Alla,
+         "Övrigt" = 100*Övrigt / Alla) %>%
+  select(-Alla)
+
+#Räknar ut vanligaste färdmedlet i respektive område
+trip_person_mode['max'] <- names(trip_person_mode)[2:7][max.col(trip_person_mode[2:7], "first")]
+
+#Plockar ut det vanligaste färdmedlet totalt sett
+mest_frekvent <- trip_person_mode %>%
+  filter(Område == "Totalt") %>%
+  select(max)
+
+#Plockar ut det vanligaste färdmedlets andelar
+mest_frekvent_andel <- trip_person_mode %>%
+  filter(Område == "Totalt") %>%
+  select(pull(mest_frekvent))
+
+#Skapar en lista med områden som har ett avvikande vanligaste färdmedel
+avvikande_vanligaste_färdmedel <- trip_person_mode %>%
+  filter(max != pull(mest_frekvent))
+
+#Producerar brödtext.
+text <- paste(pull(mest_frekvent)," är det vanligaste färdmedlet i ",rapportområde," med ",round(pull(mest_frekvent_andel))," procent av alla resorna.")
+
+if (nrow(avvikande_vanligaste_färdmedel) > 0) {
+  text <- paste(text,"I zon ")
+  #Uppräkning av områden
+  antal_uppräknade <- nrow(avvikande_vanligaste_färdmedel) #som minst räknas alla områden upp
+  text_uppräkning <- paste(avvikande_vanligaste_färdmedel$Område[1:(antal_uppräknade)], collapse = ', ') #sträng med områden
+  text_uppräkning <- stri_replace_last_fixed(text_uppräkning, ', ', ' och ') #sätter "och" i slutet av uppräkningen
+  text <- paste(text,text_uppräkning," var dock ",avvikande_vanligaste_färdmedel$max[1]," det vanligaste färdmedlet. ",sep="")
+} else{
+  text <- paste(text,pull(mest_frekvent)," är också det vanligaste färdmedlet i varje område.")
+}
+  
 
 ```
+`r (text)`
+
+<Diagram med färdmedelsandelar per område?>
+
+
+```{r trips-person-mode-table, echo = FALSE, results = "asis"}
+kbl(trip_person_mode, digits = 0, caption = "Färdmedelsandelar per tätort", booktabs = T, linesep = "") %>%
+  kable_styling(latex_options = c("striped", "HOLD_position")) %>%
+  row_spec(nrow(trip_mode), bold = T) %>% #making the Total row bold
+  row_spec(0, bold = T) #making the Header row bold
+```
+
 
 ```{r trips-mode-table, echo = FALSE, results = "asis"}
 kbl(trip_mode, caption = "Färdmedel per tätort", booktabs = T, linesep = "") %>%
@@ -481,11 +743,11 @@ Tabell/diagram med färdsätt efter ärende
 ### Reslängd och trafikarbete
 ```{r travel_dist, echo=FALSE, include = FALSE}
 
-#Filtrerar data och lägger till områdeskolumn
+#Filtrerar data
 reslangd <- rvu %>%
   filter(!is.na(avstand)) %>%
   rename(Färdmedel = fardmedel.kat) %>%
-  select(respondentid,Färdmedel,avstand,Område)
+  select(respondentid,Färdmedel,avstand,Område,Område_kod)
   
 
 #Räknar ut hur många individer som gör resor per område
@@ -511,13 +773,14 @@ individer_per_område <- reslangd %>%
 
 #Antal resor per individ (och område, färdmedel) räknas ut
 resor_per_individ <- reslangd %>% #Resor per individ blir överskattat pga fel med att individer utan resa saknar bostadsort
-  group_by(Område,Färdmedel) %>%
+  group_by(Område,Område_kod,Färdmedel) %>%
   summarise("Antal_observationer" = n()) %>%
   left_join(individer_per_område, by = c("Område" = "Område")) %>%
   mutate(Resor_per_individ = Antal_observationer/Antal_individer) %>%
-  left_join(select(deso_befolkning, c(Område,Befolkning)), by = c("Område" = "Område")) %>%
+  left_join(select(deso_befolkning, c(Område_kod,Befolkning)), by = c("Område_kod" = "Område_kod")) %>%
   mutate(Totalt_antal_resor = Befolkning*Resor_per_individ) %>%
-  select(Område,Färdmedel,Totalt_antal_resor) 
+  ungroup() %>%
+  select(Område,Färdmedel,Totalt_antal_resor)
 
 #Antal resor per individ (färdmedel) räknas ut
 resor_per_individ_summa <- resor_per_individ %>%
@@ -543,6 +806,7 @@ reslangd_summa <- reslangd %>%
 
 #Räknar ut totalt per färdmedel och område
 reslangd_per_område <- reslangd %>%
+  select(-one_of("Område_kod")) %>%
   group_by(Område,Färdmedel) %>%
   summarise("Median" = round(median(avstand),0), "Medel" = round(mean(avstand),1), "Antal_observationer" = n()) %>%
   left_join(resor_per_individ, by = c("Område" = "Område", "Färdmedel" = "Färdmedel")) %>%
@@ -771,7 +1035,7 @@ trip_purpose_all <- rvu %>%
   filter(!is.na(b2)) %>%
   left_join(purposes, by = c("b2" = "answer_id")) %>%
   left_join(pers %>%
-              select(respondentid, bostad_deso),
+              select(respondentid, Område),
             by = c("respondentid" = "respondentid")) %>%
   mutate(value = 1) %>%
   mutate(index = 1:nrow(rvu%>%filter(!is.na(b2)))) %>%
@@ -779,12 +1043,12 @@ trip_purpose_all <- rvu %>%
 
 trip_purpose_area <- trip_purpose_all %>%
   filter(!is.na(b2)) %>%
-  group_by(bostad_deso) %>%
+  group_by(Område) %>%
   summarize(.,
             across(c(3:ncol(trip_purpose_all)-1), sum),
             total = n()) %>%
-  select(-index, -b2) %>%
-  rename("Område" = bostad_deso)
+  select(-index, -b2) #%>%
+#  rename("Område" = bostad_deso)
   
 ```
 
@@ -801,13 +1065,13 @@ write.csv(trip_purpose_area, "trip_purpose_area.csv")
 ```{r trip_purpose_area_percent, echo=FALSE, include = FALSE}
 trip_purpose_area_percent <- trip_purpose_all %>%
   filter(!is.na(b2)) %>%
-  group_by(bostad_deso) %>%
+  group_by(Område) %>%
   summarize(.,
             across(c(4:ncol(trip_purpose_all)-1), ~sum(.x) / n()),
             total = n()) %>%
   mutate(across(c(4:ncol(trip_purpose_all)-2), ~percent(.x, accuracy = 1))) %>%
-  select(-index) %>%
-  rename("Område" = bostad_deso)
+  select(-index) #%>%
+#  rename("Område" = bostad_deso)
 ```
 
 ```{r trip-purpose-area-percent-table, echo = FALSE, results = "asis"}
@@ -821,15 +1085,15 @@ write.csv(trip_purpose_area, "trip_purpose_area_percent.csv")
 
 ```{r drivers_license_area, echo=FALSE, include = FALSE}
 drivers_license_area <- pers %>%
-  select(bostad_deso, h4) %>%
+  select(Område, h4) %>%
   filter(!is.na(h4)) %>%
-  group_by(bostad_deso) %>%
+  group_by(Område) %>%
   summarize("Ja" = sum(h4 == 1, na.rm = TRUE) / n(),
             "Nej" = sum(h4 == 2, na.rm = TRUE) / n(),
             "Ospecificerat" = sum(h4 == 3, na.rm = TRUE),
             "Totalt antal tillfrågade" = n()) %>%
-  mutate(across(c(2,3), ~percent(.x, accuracy = 1)))  %>%
-  rename("Område" = bostad_deso)
+  mutate(across(c(2,3), ~percent(.x, accuracy = 1)))  #%>%
+#  rename("Område" = bostad_deso)
 ```
 
 ```{r drivers-license-area-table, echo = FALSE, results = "asis"}
@@ -841,15 +1105,15 @@ kable(drivers_license_area, caption = "Körkortsinnehav per område", booktabs =
 
 ```{r car_ownership_area, echo=FALSE, include = FALSE}
 car_ownership_area <- pers %>%
-  select(bostad_deso, h5) %>%
+  select(Område, h5) %>%
   filter(!is.na(h5)) %>%
-  group_by(bostad_deso) %>%
+  group_by(Område) %>%
   summarize("Ja" = (sum(h5 == 1, na.rm = TRUE) + sum(h5 == 2, na.rm = TRUE) + sum(h5 == 3, na.rm = TRUE) + sum(h5 == 4, na.rm = TRUE)) / n(),
             "Nej" = sum(h5 == 5, na.rm = TRUE) / n(),
             "Ospecificerat" = sum(h5 == 6, na.rm = TRUE),
             "Totalt antal tillfrågade" = n()) %>%
-  mutate(across(c(2,3), ~percent(.x, accuracy = 1))) %>%
-  rename("Område" = bostad_deso)
+  mutate(across(c(2,3), ~percent(.x, accuracy = 1)))# %>%
+#  rename("Område" = bostad_deso)
 ```
 
 ```{r car-ownership-area-table, echo = FALSE, results = "asis"}
