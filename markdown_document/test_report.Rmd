@@ -996,6 +996,55 @@ x
 
 ```
 
+<Histogram med resavstånd per färdmedel>
+
+```{r od_matrix, echo=FALSE, include = FALSE}
+
+minsta_antal_resor <- 10
+
+od_matrix <- rvu %>%
+    select(start_tatort_namn, stop_tatort_namn) %>%
+    filter(!is.na(start_tatort_namn)) %>%
+    filter(!is.na(stop_tatort_namn)) %>%
+    group_by(start_tatort_namn, stop_tatort_namn) %>%
+    summarize(antal = n()) %>%
+    pivot_wider(names_from = stop_tatort_namn, values_from = antal, values_fill = 0) %>%
+    ungroup() %>%
+    mutate("Totalt" = rowSums(select_if(., is.numeric), na.rm = TRUE)) %>%
+    bind_rows(summarize(.,
+                      across(where(is.numeric), sum),
+                      across(where(is.character), ~ "Totalt"))) %>%
+    top_n(minsta_antal_resor) %>%
+    bind_rows(summarize(.,
+                      across(where(is.numeric), sum),
+                      across(where(is.character), ~ "Övriga områden")))
+
+#Skapar övrigt-rad
+od_matrix_övriga  <- 2*od_matrix[minsta_antal_resor, -1]- od_matrix[minsta_antal_resor+1,-1]
+od_matrix_övriga <- mutate(od_matrix_övriga,start_tatort_namn="Övriga områden")
+od_matrix <- rbind(od_matrix[1:minsta_antal_resor-1,],od_matrix_övriga,od_matrix[minsta_antal_resor,])
+
+#Filtrerar bort kolumner
+lista_med_tätorter <- pull(od_matrix,start_tatort_namn)
+od_matrix <- od_matrix %>%
+  select(start_tatort_namn,lista_med_tätorter[1:minsta_antal_resor-1],Totalt) %>%
+  rename("Från tärort" = start_tatort_namn) %>%
+  mutate("Övriga områden" = -rowSums(select_if(., is.numeric), na.rm = TRUE)+2*Totalt) %>%
+  relocate(Totalt, .after = "Övriga områden")
+
+#Gör första kolumnen fetstilt
+```
+
+```{r od-matrix-table, echo = FALSE, result="asis"}
+kable(od_matrix, caption = "O-D-Matris", booktabs = T, linesep = "") %>%
+  kable_styling(latex_options = c("striped", "HOLD_position"),
+                full_width = TRUE) %>%
+  row_spec(0, bold = T, angle = 45) #making the Header row bold)
+
+write.csv(od_matrix, "od_matrix.csv")
+```
+
+
 #### Resor med start och mål innanför kommungränsen
 
 Tabell med genomsnittlig reslängd och uppräknat antalresor och trafikarbete för varje delområde totalt per område och färdmedel
@@ -1075,26 +1124,6 @@ rvu_distance <- rvu_distance %>% rename("Reslängd" = avstand)
 kable(rvu_distance, caption = "Reslängd per färdsätt", booktabs = T, linesep = "") %>%
   kable_styling(latex_options = c("striped", "HOLD_position")) %>%
   row_spec(0, bold = T) #making the Header row bold
-```
-
-```{r od_matrix, echo=FALSE, include = FALSE}
-od_matrix <- rvu %>%
-    select(start_tatort_namn, stop_tatort_namn) %>%
-    filter(!is.na(start_tatort_namn)) %>%
-    filter(!is.na(stop_tatort_namn)) %>%
-    group_by(start_tatort_namn, stop_tatort_namn) %>%
-    summarize(antal = n()) %>%
-    pivot_wider(names_from = stop_tatort_namn, values_from = antal, values_fill = 0)
-
-```
-
-```{r od-matrix-table, echo = FALSE, result="asis"}
-kable(od_matrix, caption = "O-D Matris", booktabs = T, linesep = "") %>%
-  kable_styling(latex_options = c("striped", "HOLD_position"),
-                full_width = TRUE) %>%
-  row_spec(0, bold = T, angle = 90) #making the Header row bold)
-
-write.csv(od_matrix, "od_matrix.csv")
 ```
 
 
