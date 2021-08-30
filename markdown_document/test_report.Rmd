@@ -686,15 +686,23 @@ if (mest_frekvent_färdmedel != "Cykel") {
 ```
 `r (text)`
 
-<Diagram med färdmedelsandelar per område?>
-
-
-```{r trips-person-mode-table, echo = FALSE, results = "asis"}
-kbl(trip_person_mode, digits = 0, caption = "Färdmedelsandelar per tätort", booktabs = T, linesep = "") %>%
-  kable_styling(latex_options = c("striped", "HOLD_position")) %>%
-  row_spec(nrow(trip_mode), bold = T) %>% #making the Total row bold
-  row_spec(0, bold = T) #making the Header row bold
+```{r område-diagram, fig.align='center', echo = FALSE, results = "asis", fig.cap = "Resor fördelning avseen färdsätt per område."}
+#skapa Percent stacked barchart
+trip_person_mode_plot<-trip_person_mode %>%
+  gather(fard,andel,Bil:Övrigt,factor_key=TRUE) %>%
+  rename("Färdmedel" = fard,"Andel" = andel)
+trip_person_mode_plot$Andel<-round(trip_person_mode_plot$Andel,digit=0)
+omrade_plot <- ggplot(data = trip_person_mode_plot, aes(fill =Färdmedel, y = Andel, x =  Område,label =Andel)) + geom_bar(position = "fill", stat = "identity")+geom_text(data=trip_person_mode_plot[trip_person_mode_plot$Andel>2,],size = 3, position = position_fill(vjust = 0.5))+coord_flip()
+omrade_plot
 ```
+
+
+ ```{r trips-person-mode-table, echo = FALSE, results = "asis"}
+# kbl(trip_person_mode, digits = 0, caption = "Färdmedelsandelar per tätort", booktabs = T, linesep = "") %>%
+#   kable_styling(latex_options = c("striped", "HOLD_position")) %>%
+#   row_spec(nrow(trip_mode), bold = T) %>% #making the Total row bold
+#   row_spec(0, bold = T) #making the Header row bold
+ ```
 
 
 ```{r trips-mode-table, echo = FALSE, results = "asis"}
@@ -707,6 +715,8 @@ kbl(trip_mode, caption = "Färdmedel per tätort", booktabs = T, linesep = "") %
 ### Bakgrundfrågor
 
 #### Färdsätt efter kön
+
+<Diagram med färdmedelsandelar per kön>
 
 ```{r trips_gender, echo=FALSE, include=FALSE}
 
@@ -737,6 +747,8 @@ kbl(trip_mode_gender, caption = "Färdmedel per kön", booktabs = T, linesep = "
 ```
 
 #### Färdsätt efter ålder
+
+<Diagram med färdmedelsandelar per ålder>
 
 ```{r trips_age, echo=FALSE, include=FALSE}
 
@@ -780,7 +792,64 @@ Tabell/diagram med färdsätt efter sysselsättning
 
 #### Färdsätt efter ärende
 
+<Diagram med färdmedelsandelar per ärende>
+
 Tabell/diagram med färdsätt efter ärende
+
+
+```{r purpose_analysis, echo=FALSE, include = FALSE}
+purposes <- labels_data %>%
+  filter(question_id=="B2_R1") %>%
+  select(answer_id,answer)
+
+rvu_purp <- rvu %>%
+    select(resa_nr, respondentid, b2) %>%
+    left_join(purposes, by = c("b2" = "answer_id")) %>%
+    group_by(answer) %>%
+    summarise(antal = n())
+
+top_purpose <- rvu_purp %>% filter(!is.na(answer)) %>% arrange(desc(antal)) %>% filter(row_number()==1)
+top_purpose_2 <- rvu_purp %>% filter(!is.na(answer)) %>% arrange(desc(antal)) %>% filter(row_number()==2)
+
+top_purpose <- top_purpose$answer
+top_purpose_2 <- top_purpose_2$answer
+
+rvu_purp_rep <- rvu_purp %>%
+    rename(
+        'Ärende' = answer,
+        'Antal svar' = antal
+    )
+
+```
+
+```{r trip_purpose_mode, echo=FALSE, include = FALSE}
+
+trip_purpose_mode <- rvu %>%
+    select(b2, fardmedel.kat) %>%
+    filter(!is.na(fardmedel.kat)) %>%
+    left_join(purposes, by = c("b2" = "answer_id")) %>%
+    group_by(answer) %>%
+    summarise("Kollektiv buss" = sum(fardmedel.kat == "Kollektiv_buss", na.rm = TRUE),
+              "Kollektiv tåg" = sum(fardmedel.kat == "Kollektiv_tåg", na.rm = TRUE),
+              "Bil" = sum(fardmedel.kat == "Bil", na.rm = TRUE),
+              "Cykel" = sum(fardmedel.kat == "Cykel", na.rm = TRUE),
+              "Gång" = sum(fardmedel.kat == "Gång", na.rm = TRUE),
+              "Annat" = sum(fardmedel.kat == "Annat", na.rm = TRUE),
+              "Total" = n()) %>%
+    bind_rows(summarize(.,
+                      across(where(is.numeric), sum),
+                      across(where(is.character), ~"Total"))) %>%
+    rename("Ärende" = answer)
+```
+
+
+```{r trip-purpose-mode-table, echo = FALSE, result="asis"}
+kable(trip_purpose_mode, caption = "Resärende per färdmedel", booktabs = T, linesep = "") %>%
+  kable_styling(latex_options = c("striped", "HOLD_position")) %>%
+  row_spec(nrow(trip_purpose_mode), bold = T) %>% #making the Total row bold
+  row_spec(0, bold = T) #making the Header row bold)
+```
+
 
 ### Reslängd och trafikarbete
 ```{r travel_dist, echo=FALSE, include = FALSE}
@@ -942,31 +1011,6 @@ Liten OD-matris med vilka andra områden (tätorter, kommuner eller län, beroen
 Här följer en karta och mer detaljerade tabeller.
 
 ## Ärendeanalys
-
-```{r purpose_analysis, echo=FALSE, include = FALSE}
-purposes <- labels_data %>%
-  filter(question_id=="B2_R1") %>%
-  select(answer_id,answer)
-
-rvu_purp <- rvu %>%
-    select(resa_nr, respondentid, b2) %>%
-    left_join(purposes, by = c("b2" = "answer_id")) %>%
-    group_by(answer) %>%
-    summarise(antal = n())
-
-top_purpose <- rvu_purp %>% filter(!is.na(answer)) %>% arrange(desc(antal)) %>% filter(row_number()==1)
-top_purpose_2 <- rvu_purp %>% filter(!is.na(answer)) %>% arrange(desc(antal)) %>% filter(row_number()==2)
-
-top_purpose <- top_purpose$answer
-top_purpose_2 <- top_purpose_2$answer
-
-rvu_purp_rep <- rvu_purp %>%
-    rename(
-        'Ärende' = answer,
-        'Antal svar' = antal
-    )
-
-```
 
 I Tabell \@ref(tab:purpose-table) och Figur \@ref(fig:purpose-diagram) beskrivs vilka ärenden som respondenterna har svarat att de uppfylde med sina resor. Huvudärendet är `r tolower(top_purpose)` och andra mest populärt ärende är `r tolower(top_purpose_2)`.
 
@@ -1165,33 +1209,6 @@ kable(car_ownership_area, caption = "Bilinnehav per område", booktabs = T, line
   row_spec(0, bold = T) #making the Header row bold)
 ```
 
-```{r trip_purpose_mode, echo=FALSE, include = FALSE}
-
-trip_purpose_mode <- rvu %>%
-    select(b2, fardmedel.kat) %>%
-    filter(!is.na(fardmedel.kat)) %>%
-    left_join(purposes, by = c("b2" = "answer_id")) %>%
-    group_by(answer) %>%
-    summarise("Kollektiv buss" = sum(fardmedel.kat == "Kollektiv_buss", na.rm = TRUE),
-              "Kollektiv tåg" = sum(fardmedel.kat == "Kollektiv_tåg", na.rm = TRUE),
-              "Bil" = sum(fardmedel.kat == "Bil", na.rm = TRUE),
-              "Cykel" = sum(fardmedel.kat == "Cykel", na.rm = TRUE),
-              "Gång" = sum(fardmedel.kat == "Gång", na.rm = TRUE),
-              "Annat" = sum(fardmedel.kat == "Annat", na.rm = TRUE),
-              "Total" = n()) %>%
-    bind_rows(summarize(.,
-                      across(where(is.numeric), sum),
-                      across(where(is.character), ~"Total"))) %>%
-    rename("Ärende" = answer)
-```
-
-
-```{r trip-purpose-mode-table, echo = FALSE, result="asis"}
-kable(trip_purpose_mode, caption = "Resärende per färdmedel", booktabs = T, linesep = "") %>%
-  kable_styling(latex_options = c("striped", "HOLD_position")) %>%
-  row_spec(nrow(trip_purpose_mode), bold = T) %>% #making the Total row bold
-  row_spec(0, bold = T) #making the Header row bold)
-```
 
 
 
