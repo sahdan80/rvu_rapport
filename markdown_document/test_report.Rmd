@@ -686,13 +686,13 @@ if (mest_frekvent_färdmedel != "Cykel") {
 ```
 `r (text)`
 
-```{r område-diagram, fig.align='center', echo = FALSE, results = "asis", fig.cap = "Resor fördelning avseen färdsätt per område."}
+```{r område-diagram, fig.align='center', fig.hight = 3,fig.width=8, echo = FALSE, results = "asis", fig.cap = "Resor fördelning avseen färdsätt per område."}
 #skapa Percent stacked barchart
 trip_person_mode_plot<-trip_person_mode %>%
   gather(fard,andel,Bil:Övrigt,factor_key=TRUE) %>%
   rename("Färdmedel" = fard,"Andel" = andel)
 trip_person_mode_plot$Andel<-round(trip_person_mode_plot$Andel,digit=0)
-omrade_plot <- ggplot(data = trip_person_mode_plot, aes(fill =Färdmedel, y = Andel, x =  Område,label =Andel)) + geom_bar(position = "fill", stat = "identity")+geom_text(data=trip_person_mode_plot[trip_person_mode_plot$Andel>2,],size = 3, position = position_fill(vjust = 0.5))+coord_flip()
+omrade_plot <- ggplot(data = trip_person_mode_plot, aes(fill =forcats::fct_rev(factor(Färdmedel)), x = Andel, y = forcats::fct_rev(factor(Område)),label =Andel)) + geom_bar(position = "fill", stat = "identity")+geom_text(data=trip_person_mode_plot[trip_person_mode_plot$Andel>2,],size = 2, position = position_fill(vjust = 0.2))+labs(x="Andel (%)",y="Område",fill="Färdmedel")
 omrade_plot
 ```
 
@@ -729,12 +729,33 @@ trip_mode_gender <- pers %>%
              "Buss" = sum(Buss, na.rm = TRUE),
              "Cykel" = sum(Cykel, na.rm = TRUE),
              "Gång" = sum(Gång, na.rm = TRUE),
-             "Övrigt" = sum(Övrigt, na.rm = TRUE)) %>%
+             "Övrigt" = sum(Övrigt, na.rm = TRUE),
+             "Alla" = Bil + Tåg + Buss + Cykel + Gång + Övrigt) %>%
   bind_rows(summarize(.,
                       across(where(is.numeric), sum),
                       across(where(is.character), ~"Totalt"))) %>%
   rename('Kön' = kon)
 
+```
+
+
+
+```{r gender-diagram, fig.align='center', fig.hight = 3,fig.width=8, echo = FALSE, results = "asis", fig.cap = "Resor fördelning avseen färdsätt per kön."}
+#beräkna andel
+trip_mode_gender_andel <- trip_mode_gender %>%
+  mutate("Bil" = 100*Bil / Alla,
+          "Tåg" = 100*Tåg / Alla,
+          "Buss" =  100*Buss / Alla,
+          "Cykel" = 100*Cykel / Alla,
+          "Gång" = 100*Gång / Alla,
+         "Övrigt" = 100*Övrigt / Alla) %>%
+  select(-Alla)
+#skapa Percent stacked barchart
+temp_plot<-trip_mode_gender_andel %>%
+  gather(Färdmedel,Andel,Bil:Övrigt,factor_key=TRUE)
+temp_plot$Andel<-round(temp_plot$Andel,digit=0)
+gender_plot <- ggplot(data = temp_plot, aes(fill =forcats::fct_rev(factor(Färdmedel)), x = Andel, y = forcats::fct_rev(factor(Kön)),label =Andel)) + geom_bar(position = "fill", stat = "identity")+geom_text(data=temp_plot[temp_plot$Andel>2,],size = 2, position = position_fill(vjust = 0.2))+labs(x="Andel(%)",y="Kön",fill="Färdmedel")
+gender_plot
 ```
 
 Tabell/diagram med färdsätt efter kön.
@@ -763,7 +784,8 @@ trip_age <- pers %>%
              "Buss" = sum(Buss, na.rm = TRUE),
              "Cykel" = sum(Cykel, na.rm = TRUE),
              "Gång" = sum(Gång, na.rm = TRUE),
-             "Övrigt" = sum(Övrigt, na.rm = TRUE)) %>%
+             "Övrigt" = sum(Övrigt, na.rm = TRUE),
+            "Alla" =Bil + Tåg + Buss + Cykel + Gång + Övrigt) %>%
   mutate(alder = c(
     "Yngre än 18",
     "Mellan 18 och 24",
@@ -778,6 +800,24 @@ trip_age <- pers %>%
 ```
 
 Tabell/diagram med färdsätt efter ålder, 12-17 år, 18-24 år, 25-39 år, 40-64 år, 65-74 år, 75-84 år
+
+```{r age-diagram, fig.align='center', fig.hight=3, fig.width = 8, echo = FALSE, results = "asis", fig.cap = "Resor fördelning avseen färdsätt per åldersgrupp."}
+#beräkna andel
+trip_age_andel <- trip_age %>%
+  mutate("Bil" = 100*Bil / Alla,
+          "Tåg" = 100*Tåg / Alla,
+          "Buss" =  100*Buss / Alla,
+          "Cykel" = 100*Cykel / Alla,
+          "Gång" = 100*Gång / Alla,
+         "Övrigt" = 100*Övrigt / Alla) %>%
+  select(-Alla)
+#skapa Percent stacked barchart
+temp_plot<-trip_age_andel %>%
+  gather(Färdmedel,Andel,Bil:Övrigt,factor_key=TRUE)
+temp_plot$Andel<-round(temp_plot$Andel,digit=0)
+age_plot <- ggplot(data = temp_plot, aes(fill =forcats::fct_rev(factor(Färdmedel)), x = Andel, y = forcats::fct_rev(factor(Ålder)),label =Andel)) + geom_bar(position = "fill", stat = "identity")+geom_text(data=temp_plot[temp_plot$Andel>2,],size = 2, position = position_fill(vjust = 0.2))+labs(x="Andel(%)",y="Ålder",fill="Färdmedel")
+age_plot
+```
 
 ```{r mode-age-table, echo = FALSE, results = "asis"}
 kbl(trip_age, caption = "Färdmedel per åldersgrupp", booktabs = T, linesep = "") %>%
@@ -842,6 +882,29 @@ trip_purpose_mode <- rvu %>%
     rename("Ärende" = answer)
 ```
 
+```{r purpose-mode-diagram, fig.align='center', fig.hight = 3,fig.width=8, echo = FALSE, results = "asis", fig.cap = "Resor fördelning avseen färdsätt per ärende."}
+#beräkna andel
+temp_plot<-trip_purpose_mode
+colnames(temp_plot)[which(names(temp_plot) == "Kollektiv buss")] <- "Buss"
+colnames(temp_plot)[which(names(temp_plot) == "Kollektiv tåg")] <- "Tåg"
+colnames(temp_plot)[which(names(temp_plot) == "Annat")] <- "Övrigt"
+temp_plot <- temp_plot %>%
+  mutate("Bil" = 100*Bil / Total,
+          "Tåg" = 100*Tåg / Total,
+          "Buss" =  100*Buss / Total,
+          "Cykel" = 100*Cykel / Total,
+          "Gång" = 100*Gång / Total,
+         "Övrigt" = 100*Övrigt / Total) %>%
+  select(-Total)
+
+#skapa Percent stacked barchart 
+
+temp_plot<-temp_plot %>%
+  gather(Färdmedel,Andel,Buss:Övrigt,factor_key=TRUE)
+temp_plot$Andel<-round(temp_plot$Andel,digit=0)
+purpose_plot <- ggplot(data = temp_plot, aes(fill =forcats::fct_rev(factor(Färdmedel)), x = Andel, y = forcats::fct_rev(factor(Ärende)),label =Andel)) + geom_bar(position = "fill", stat = "identity")+geom_text(data=temp_plot[temp_plot$Andel>10,],size = 2, position = position_fill(vjust = 0.3))+labs(x="Andel(%)",y="Ärende",fill="Färdmedel")
+purpose_plot
+```
 
 ```{r trip-purpose-mode-table, echo = FALSE, result="asis"}
 kable(trip_purpose_mode, caption = "Resärende per färdmedel", booktabs = T, linesep = "") %>%
@@ -1000,7 +1063,7 @@ x
 
 ```{r od_matrix, echo=FALSE, include = FALSE}
 
-minsta_antal_resor <- 10
+minsta_antal <- 10
 
 od_matrix <- rvu %>%
     select(start_tatort_namn, stop_tatort_namn) %>%
@@ -1009,39 +1072,51 @@ od_matrix <- rvu %>%
     group_by(start_tatort_namn, stop_tatort_namn) %>%
     summarize(antal = n()) %>%
     pivot_wider(names_from = stop_tatort_namn, values_from = antal, values_fill = 0) %>%
-    ungroup() %>%
+    ungroup()
+
+#Sparar OD-matris som csv
+write.csv(od_matrix, "od_matrix.csv")
+
+#Filtrerar ut populäraste områden samt skapar total och övriga områden
+od_matrix <- od_matrix %>%
     mutate("Totalt" = rowSums(select_if(., is.numeric), na.rm = TRUE)) %>%
     bind_rows(summarize(.,
                       across(where(is.numeric), sum),
                       across(where(is.character), ~ "Totalt"))) %>%
-    top_n(minsta_antal_resor) %>%
+    top_n(minsta_antal) %>%
     bind_rows(summarize(.,
                       across(where(is.numeric), sum),
                       across(where(is.character), ~ "Övriga områden")))
 
 #Skapar övrigt-rad
-od_matrix_övriga  <- 2*od_matrix[minsta_antal_resor, -1]- od_matrix[minsta_antal_resor+1,-1]
+od_matrix_övriga  <- 2*od_matrix[minsta_antal, -1]- od_matrix[minsta_antal+1,-1]
 od_matrix_övriga <- mutate(od_matrix_övriga,start_tatort_namn="Övriga områden")
-od_matrix <- rbind(od_matrix[1:minsta_antal_resor-1,],od_matrix_övriga,od_matrix[minsta_antal_resor,])
+od_matrix <- rbind(od_matrix[1:minsta_antal-1,],od_matrix_övriga,od_matrix[minsta_antal,])
 
 #Filtrerar bort kolumner
 lista_med_tätorter <- pull(od_matrix,start_tatort_namn)
 od_matrix <- od_matrix %>%
-  select(start_tatort_namn,lista_med_tätorter[1:minsta_antal_resor-1],Totalt) %>%
+  select(start_tatort_namn,lista_med_tätorter[1:minsta_antal-1],Totalt) %>%
   rename("Från tärort" = start_tatort_namn) %>%
   mutate("Övriga områden" = -rowSums(select_if(., is.numeric), na.rm = TRUE)+2*Totalt) %>%
   relocate(Totalt, .after = "Övriga områden")
 
-#Gör första kolumnen fetstilt
+
+#Skapar procent-matris
+od_matrix_perc <- as.data.frame(od_matrix)
+rownames(od_matrix_perc) <- od_matrix_perc$"Från tärort"
+od_matrix_perc <- select(od_matrix_perc,!c("Från tärort",Totalt))
+od_matrix_perc <- rbind(od_matrix_perc[1:minsta_antal,])
+od_matrix_perc <- round(od_matrix_perc/sum(od_matrix_perc)*100)
+
 ```
 
 ```{r od-matrix-table, echo = FALSE, result="asis"}
-kable(od_matrix, caption = "O-D-Matris", booktabs = T, linesep = "") %>%
+kable(od_matrix_perc, caption = "O-D-Matris", booktabs = T, linesep = "") %>%
   kable_styling(latex_options = c("striped", "HOLD_position"),
                 full_width = TRUE) %>%
-  row_spec(0, bold = T, angle = 45) #making the Header row bold)
-
-write.csv(od_matrix, "od_matrix.csv")
+  row_spec(0, bold = T, angle = 45) %>% #making the Header row bold)
+  column_spec(1, bold = T, width = "2cm")
 ```
 
 
@@ -1050,6 +1125,36 @@ write.csv(od_matrix, "od_matrix.csv")
 Tabell med genomsnittlig reslängd och uppräknat antalresor och trafikarbete för varje delområde totalt per område och färdmedel
 
 Tabell/diagram med antal resor per färdmedel efter färmedelslängd Graf med färdmedelsandelar över x = antal kilometer.
+
+```{r distans-mode-diagram, fig.align='center', fig.hight = 3,fig.width=8, echo = FALSE, results = "asis", fig.cap = "Resor fördelning avseen färdsätt per avstånd klass."}
+rvu_avs <- rvu %>%
+  filter(!is.na(avstand)) %>%
+  rename(Färdmedel = fardmedel.kat) %>%
+  select(respondentid,Färdmedel,avstand,Område,Område_kod)
+rvu_avs$km<-ceiling(rvu_avs$avstand/1000)
+rvu_avs$kmklass<-ifelse(rvu_avs$km>15,16,rvu_avs$km)
+rvu_avs$antal<-1
+agg_rvu_avs <-
+  aggregate(rvu_avs[,c('antal'), drop=FALSE], by=list(
+    avstand = rvu_avs$kmklass,
+    fard = rvu_avs$Färdmedel
+  ),
+  FUN = sum) 
+agg_rvu_avs<-spread(agg_rvu_avs,key=fard,value=antal)
+agg_rvu_avs[is.na(agg_rvu_avs)]<-0
+agg_rvu_avs$Total<-agg_rvu_avs$Bil+agg_rvu_avs$Buss+agg_rvu_avs$Tåg+agg_rvu_avs$Cykel+agg_rvu_avs$Gång
+temp_plot <- agg_rvu_avs %>%
+  mutate("Bil" = 100*Bil / Total,
+         "Tåg" = 100*Tåg / Total,
+         "Buss" =  100*Buss / Total,
+         "Cykel" = 100*Cykel / Total,
+         "Gång" = 100*Gång / Total) %>%
+  select(-Total) %>%
+  gather(Färdmedel,Andel,Bil:Tåg,factor_key=TRUE)
+temp_plot$Andel<-round(temp_plot$Andel,digit=0)
+avstand_plot <- ggplot(data = temp_plot, aes(fill =forcats::fct_rev(factor(Färdmedel)), y = Andel, x = factor(avstand),label =Andel)) + geom_bar(position = "fill", stat = "identity")+geom_text(data=temp_plot[temp_plot$Andel>2,],size = 2, position = position_fill(vjust = 0.2))+labs(y="Andel(%)",x="Avstånd (km)",fill="Färdmedel")
+avstand_plot
+```
 
 #### Resor med start eller mål utanför kommungränsen
 
@@ -1126,7 +1231,6 @@ kable(rvu_distance, caption = "Reslängd per färdsätt", booktabs = T, linesep 
   row_spec(0, bold = T) #making the Header row bold
 ```
 
-
 ```{r purpose-diagram, echo = FALSE, results = "asis", fig.cap = "Antal resor per ärende."}
 purp_barplot <- ggplot(rvu_purp, aes(answer, antal, fill = answer)) + 
     geom_bar(stat = "identity") +
@@ -1171,7 +1275,8 @@ trip_purpose_area <- trip_purpose_all %>%
 kable(trip_purpose_area, caption = "Resärende per område", booktabs = T, linesep = "") %>%
   kable_styling(latex_options = c("striped", "HOLD_position"),
                 full_width = TRUE) %>%
-  row_spec(0, bold = T, angle = 60) #making the Header row bold
+  row_spec(0, bold = T, angle = 60) %>% #making the Header row bold
+  column_spec(1, width = "2cm")
 
 write.csv(trip_purpose_area, "trip_purpose_area.csv")
 
@@ -1193,7 +1298,8 @@ trip_purpose_area_percent <- trip_purpose_all %>%
 kable(trip_purpose_area_percent, caption = "Resärende per område (procent)", booktabs = T, linesep = "") %>%
   kable_styling(latex_options = c("striped", "HOLD_position"),
                 full_width = TRUE) %>%
-  row_spec(0, bold = T, angle = 60) #making the Header row bold
+  row_spec(0, bold = T, angle = 60) %>% #making the Header row bold
+  column_spec(1,width = "2cm")
 
 write.csv(trip_purpose_area, "trip_purpose_area_percent.csv")
 ```
