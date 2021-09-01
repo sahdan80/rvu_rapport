@@ -146,8 +146,8 @@ deso_befolkning <- deso_befolkning %>%
   summarise(Befolkning = sum(Befolkning), Män = sum(Män), Kvinnor = sum(Kvinnor), "Ålder_15_24" = sum(Ålder_15_24), "Ålder_25_64" = sum(Ålder_25_64), "Ålder_65" = sum(Ålder_65))
 
 #Definierar om respondenter ska delas upp på kommun, tätort eller deso-nivå:
-rapportområde <- 'Bålsta kommun'
-nivå <- "deso" #'kommun' #'tatort' #global parameter
+rapportområde <- 'Bålsta'
+nivå <- "deso" #'kommun' #'tatort' #vilken områdesnivån som resultaten ska redovisas på. Om rapportområdet är en region, bör kommun väljas och om det är en tätort bör deso väljas osv...
 
 pers <- mutate(pers,bostad_deso_namn = bostad_deso)
 pers <- mutate(pers,bostad_deso_kod = bostad_deso)
@@ -708,11 +708,7 @@ omrade_plot
 
 ### Bakgrundfrågor
 
-#### Färdsätt efter kön
-
-Andelen kvinnor och män  i undersökningen är ungefär lika stora, X respektive Y procent. Hur 
-de reser brukar skilja sig åt, så även i denna mätning. X åker mer bil men har färre förflytt-
-ningar med färdmedel Y.
+Nedan följer sammanställningar kopplade till respondenternas egenskaper.
 
 ```{r trips_gender, echo=FALSE, include=FALSE}
 
@@ -734,6 +730,11 @@ trip_mode_gender <- pers %>%
 
 ```
 
+#### Färdsätt efter kön
+
+Andelen kvinnor och män  i undersökningen är ungefär lika stora, X respektive Y procent. Hur 
+de reser brukar skilja sig åt, så även i denna mätning. X åker mer bil men har färre förflytt-
+ningar med färdmedel Y.
 
 ```{r kön-diagram, echo = FALSE, results = "asis", fig.cap = "Resornas färdmedelsfördelning per kön."}
 #beräkna andel
@@ -769,8 +770,6 @@ kbl(trip_mode_gender, caption = "Färdmedel per kön", booktabs = T, linesep = "
 
 #### Färdsätt efter ålder
 
-<Diagram med färdmedelsandelar per ålder>
-
 ```{r trips_age, echo=FALSE, include=FALSE}
 
 trip_age <- pers %>%
@@ -801,7 +800,9 @@ trip_age <- pers %>%
 
 ```
 
-Tabell/diagram med färdsätt efter ålder, 12-17 år, 18-24 år, 25-39 år, 40-64 år, 65-74 år, 75-84 år
+Åldersgruppen X år utgör X procent, gruppen Y år Y procent och åldersgruppen Z 
+år Z procent av den undersökta befolkningen. I diagrammet nedan jämförs färdsättsanvänd-
+ning i olika åldersgrupper. Färdsättet övrigt redovisas inte.
 
 ```{r ålder-diagram, echo = FALSE, results = "asis", fig.cap = "Resornas färdmedelsfördelning per åldersgrupp."}
 #beräkna andel
@@ -833,17 +834,7 @@ kbl(trip_age, caption = "Färdmedel per åldersgrupp", booktabs = T, linesep = "
   row_spec(0, bold = T) #gör rubrikraden fetstilt
 ```
 
-
-#### Färdsätt efter sysselsättning
-
-Tabell/diagram med färdsätt efter sysselsättning
-
 #### Färdsätt efter ärende
-
-<Diagram med färdmedelsandelar per ärende>
-
-Tabell/diagram med färdsätt efter ärende
-
 
 ```{r purpose_analysis, echo=FALSE, include = FALSE}
 purposes <- labels_data %>%
@@ -889,6 +880,11 @@ trip_purpose_mode <- rvu %>%
                       across(where(is.character), ~"Total"))) %>%
     rename("Ärende" = answer)
 ```
+
+Resor till bostaden utgör en stor del av alla resor. I denna mätning är andelen 38 procent och 
+andelen som gjordes till arbete var 20 procent. Av de resor som gjordes av de som har haft arbete 
+som ärende för resan är 40 procent bilresor, 14 procent bussresor, 36 procent cykelresor och sju 
+procent är gångförflyttningar och tre procent övrigt.
 
 ```{r ärende-diagram, echo = FALSE, results = "asis", fig.cap = "Resornas färdmedelsfördelning per ärende"}
 #beräkna andel
@@ -1042,7 +1038,7 @@ reslangd_per_omrade_rep <- reslangd_per_omrade_rep %>%
   select(-Område)
 ```
 
-Tabell med reslängd per område (för färdmedel med färre än `r tolower(tillräckligt_underlag)` observationer utelämnas resultatet).
+I resdagboken har intervjupersonerna fått fylla i plats för resmål, som sparats i staitisiken i form av koordinater. Dessa koordinater har använts för att uppskatta avstånd för varje resa med respektive färdmedel. Det partiella bortfallet på grund av avsaknade koordinater är X procent. I flera grupper är underlaget färre `r tolower(tillräckligt_underlag)` respondenter. För dessa har resultat utelämnats. Se Tabell...
 
 ```{r travel_dist-table1, echo = FALSE, results = "asis"}
 
@@ -1071,72 +1067,10 @@ x
 
 ```
 
-<Histogram med resavstånd per färdmedel>
+Andelen resor som genomförs med bil ökar ju längre resan är. Kollektivtrafiksresandet... Cykelandelen är som högst för resor på ca X km och sjunker sedan successivt med ökat avstånd. Gång-
+andelen är som högst vid riktigt korta avstånd.
 
-```{r od_matrix, echo=FALSE, include = FALSE}
-
-minsta_antal <- 10
-
-od_matrix <- rvu %>%
-    select(start_tatort_namn, stop_tatort_namn) %>%
-    filter(!is.na(start_tatort_namn)) %>%
-    filter(!is.na(stop_tatort_namn)) %>%
-    group_by(start_tatort_namn, stop_tatort_namn) %>%
-    summarize(antal = n()) %>%
-    pivot_wider(names_from = stop_tatort_namn, values_from = antal, values_fill = 0) %>%
-    ungroup()
-
-#Sparar OD-matris som csv
-write.csv(od_matrix, "od_matrix.csv")
-
-#Filtrerar ut populäraste områden samt skapar total och övriga områden
-od_matrix <- od_matrix %>%
-    mutate("Totalt" = rowSums(select_if(., is.numeric), na.rm = TRUE)) %>%
-    bind_rows(summarize(.,
-                      across(where(is.numeric), sum),
-                      across(where(is.character), ~ "Totalt"))) %>%
-    top_n(minsta_antal) %>%
-    bind_rows(summarize(.,
-                      across(where(is.numeric), sum),
-                      across(where(is.character), ~ "Övriga områden")))
-
-#Skapar övrigt-rad
-od_matrix_övriga  <- 2*od_matrix[minsta_antal, -1]- od_matrix[minsta_antal+1,-1]
-od_matrix_övriga <- mutate(od_matrix_övriga,start_tatort_namn="Övriga områden")
-od_matrix <- rbind(od_matrix[1:minsta_antal-1,],od_matrix_övriga,od_matrix[minsta_antal,])
-
-#Filtrerar bort kolumner
-lista_med_tätorter <- pull(od_matrix,start_tatort_namn)
-od_matrix <- od_matrix %>%
-  select(start_tatort_namn,lista_med_tätorter[1:minsta_antal-1],Totalt) %>%
-  rename("Från tärort" = start_tatort_namn) %>%
-  mutate("Övriga områden" = -rowSums(select_if(., is.numeric), na.rm = TRUE)+2*Totalt) %>%
-  relocate(Totalt, .after = "Övriga områden")
-
-
-#Skapar procent-matris
-od_matrix_perc <- as.data.frame(od_matrix)
-rownames(od_matrix_perc) <- od_matrix_perc$"Från tärort"
-od_matrix_perc <- select(od_matrix_perc,!c("Från tärort",Totalt))
-od_matrix_perc <- rbind(od_matrix_perc[1:minsta_antal,])
-od_matrix_perc <- round(od_matrix_perc/sum(od_matrix_perc)*100)
-
-```
-
-```{r od-matrix-table, echo = FALSE, result="asis"}
-kable(od_matrix_perc, caption = "O-D-Matris", booktabs = T, linesep = "") %>%
-  kable_styling(latex_options = c("striped", "HOLD_position"),
-                full_width = TRUE) %>%
-  row_spec(0, bold = T, angle = 45) %>% #gör rubrikraden fetstilt)
-  column_spec(1, bold = T, width = "2cm")
-```
-
-
-#### Resor med start och mål innanför kommungränsen
-
-Tabell med genomsnittlig reslängd och uppräknat antalresor och trafikarbete för varje delområde totalt per område och färdmedel
-
-Tabell/diagram med antal resor per färdmedel efter färmedelslängd Graf med färdmedelsandelar över x = antal kilometer.
+Nedan följer ett diagram som visar färdmedelsfördelnjing per reslängd.
 
 ```{r avstånds-diagram, echo = FALSE, results = "asis", fig.cap = "Resornas färdmedelsfördelning per avståndsklass."}
 rvu_avs <- rvu %>%
@@ -1173,9 +1107,126 @@ avstand_plot <- ggplot(data = temp_plot, aes(fill =forcats::fct_rev(factor(Färd
 avstand_plot
 ```
 
-#### Resor med start eller mål utanför kommungränsen
 
-Liten OD-matris med vilka andra områden (tätorter, kommuner eller län, beroende på vilken nivå RVU:n tas fram för.) som respondenterna reser till. I antal procent av totala antalet resor.
+#### Reserelationer inom `r (rapportområde)`
+
+```{r od_matrix, echo=FALSE, include = FALSE}
+
+minsta_antal <- 10
+
+#Skapar od-matris för alla resor
+od_matrix <- rvu %>%
+    filter(start_tatort_namn == rapportområde & stop_tatort_namn == rapportområde) %>%
+    select(start_deso, stop_deso) %>%
+    filter(!is.na(start_deso)) %>%
+    filter(!is.na(stop_deso)) %>%
+    group_by(start_deso, stop_deso) %>%
+    summarize(antal = n()) %>%
+    pivot_wider(names_from = stop_deso, values_from = antal, values_fill = 0) %>%
+    ungroup()
+
+#Sparar OD-matris som csv
+write.csv(od_matrix, "od_matrix.csv")
+
+#Filtrerar ut populäraste områden samt skapar total och övriga områden
+od_matrix <- od_matrix %>%
+    mutate("Totalt" = rowSums(select_if(., is.numeric), na.rm = TRUE)) %>%
+    bind_rows(summarize(.,
+                      across(where(is.numeric), sum),
+                      across(where(is.character), ~ "Totalt"))) %>%
+    top_n(minsta_antal)
+
+#Filtrerar bort kolumner
+lista_med_tätorter <- pull(od_matrix,start_deso)
+od_matrix <- od_matrix %>%
+  select(start_deso,lista_med_tätorter[1:minsta_antal-1],Totalt) %>%
+  rename("Från tärort" = start_deso)
+
+
+#Skapar procent-matris
+od_matrix_perc <- as.data.frame(od_matrix) #konverterar till dataframe
+rownames(od_matrix_perc) <- od_matrix_perc$"Från tärort" #Skapar indexkolumn
+od_matrix_perc <- select(od_matrix_perc,!c("Från tärort")) #Tar bort gammal kolumn
+od_matrix_perc <- rbind(od_matrix_perc[1:minsta_antal-1,])
+od_matrix_perc <- round(od_matrix_perc/od_matrix_perc["Totalt","Totalt"]*100)
+
+```
+
+X procent av resorna sker inom `r (rapportområde)`. 
+Den vanligaste förekommande resan inom ett område sker i X. Den vanligaste resan mellan två områden är från X till Y.
+(Behöver generaliseras för att visa tätortsnivå om kommun-rapport och kommunnivå om regionrapport)
+
+```{r od-matrix-table, echo = FALSE, result="asis"}
+kable(od_matrix_perc, caption = "Fördelning av resorna inom tätorten.", booktabs = T, linesep = "") %>%
+  kable_styling(latex_options = c("striped", "HOLD_position"),
+                full_width = TRUE) %>%
+  row_spec(0, bold = T, angle = 45) %>% #gör rubrikraden fetstilt)
+  column_spec(1, bold = T, width = "2cm")
+```
+#### Reserelationer utanför `r (rapportområde)`
+
+För resor utanför området sker dessa...
+(Behöver generaliseras för att visa kommunnivå om kommun-rapport och regionnivå om regionrapport)
+
+```{r od_matrix_extern, echo=FALSE, include = FALSE}
+
+minsta_antal <- 10
+
+#Skapar od-matris för alla resor
+od_matrix <- rvu %>%
+    select(start_tatort_namn, stop_tatort_namn) %>%
+    filter(!is.na(start_tatort_namn)) %>%
+    filter(!is.na(stop_tatort_namn)) %>%
+    filter(!(start_tatort_namn == rapportområde & stop_tatort_namn == rapportområde)) %>%
+    group_by(start_tatort_namn, stop_tatort_namn) %>%
+    summarize(antal = n()) %>%
+    pivot_wider(names_from = stop_tatort_namn, values_from = antal, values_fill = 0) %>%
+    ungroup()
+
+#Sparar OD-matris som csv
+write.csv(od_matrix, "od_matrix.csv")
+
+#Filtrerar ut populäraste områden samt skapar total och övriga områden
+od_matrix <- od_matrix %>%
+    mutate("Totalt" = rowSums(select_if(., is.numeric), na.rm = TRUE)) %>%
+    bind_rows(summarize(.,
+                      across(where(is.numeric), sum),
+                      across(where(is.character), ~ "Totalt"))) %>%
+    top_n(minsta_antal) %>%
+    bind_rows(summarize(.,
+                      across(where(is.numeric), sum),
+                      across(where(is.character), ~ "Övriga områden")))
+
+#Skapar övrigt-rad
+od_matrix_övriga  <- 2*od_matrix[minsta_antal, -1]- od_matrix[minsta_antal+1,-1]
+od_matrix_övriga <- mutate(od_matrix_övriga,start_tatort_namn="Övriga områden")
+od_matrix <- rbind(od_matrix[1:minsta_antal-1,],od_matrix_övriga,od_matrix[minsta_antal,])
+
+#Filtrerar bort kolumner
+lista_med_tätorter <- pull(od_matrix,start_tatort_namn)
+od_matrix <- od_matrix %>%
+  select(start_tatort_namn,lista_med_tätorter[1:minsta_antal-1],Totalt) %>%
+  rename("Från tärort" = start_tatort_namn) %>%
+  mutate("Övriga områden" = -rowSums(select_if(., is.numeric), na.rm = TRUE)+2*Totalt) %>%
+  relocate(Totalt, .after = "Övriga områden")
+
+
+#Skapar procent-matris
+od_matrix_perc <- as.data.frame(od_matrix)
+rownames(od_matrix_perc) <- od_matrix_perc$"Från tärort"
+od_matrix_perc <- select(od_matrix_perc,!c("Från tärort"))
+od_matrix_perc <- rbind(od_matrix_perc[0:minsta_antal+1,])
+od_matrix_perc <- round(od_matrix_perc/od_matrix_perc["Totalt","Totalt"]*100)
+
+```
+
+```{r od-matrix-extern-table, echo = FALSE, result="asis"}
+kable(od_matrix_perc, caption = "Resor av invånare i Bålsta till och/eller från andra tätorter.", booktabs = T, linesep = "") %>%
+  kable_styling(latex_options = c("striped", "HOLD_position"),
+                full_width = TRUE) %>%
+  row_spec(0, bold = T, angle = 45) %>% #gör rubrikraden fetstilt)
+  column_spec(1, bold = T, width = "2cm")
+```
 
 # Kartor och bilagor
 
