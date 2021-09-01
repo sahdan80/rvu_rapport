@@ -332,8 +332,8 @@ Ur undersökningen har de `r (antal_individer)` respondenter som bor i `r (rappo
 ```{r svarsfrekvens-table, echo = FALSE, results = "asis"}
 kbl(svarsgrad_tabell, caption = "Antal svar jämfört med befolkningen (15 år och äldre) i respektive område", booktabs = T, linesep = "") %>%
   kable_styling(latex_options = c("striped", "HOLD_position")) %>%
-  row_spec(nrow(svarsgrad_tabell), bold = T) %>% #making the Total row bold
-  row_spec(0, bold = T) #making the header row bold
+  row_spec(nrow(svarsgrad_tabell), bold = T) %>% #gör Total-raden fetstilt
+  row_spec(0, bold = T) #gör rubrikraden fetstilt
 ```
 
 `r (text)` 
@@ -342,8 +342,8 @@ kbl(svarsgrad_tabell, caption = "Antal svar jämfört med befolkningen (15 år o
 #kable(respondenter, caption = "Antal svar per kön och åldersgrupp")
 kbl(respondenter_tabell, caption = "Antal svar per kön och åldersgrupp", booktabs = T, linesep = "") %>%
   kable_styling(latex_options = c("striped", "HOLD_position")) %>%
-  row_spec(nrow(respondenter_tabell), bold = T) %>% #making the Total row bold
-  row_spec(0, bold = T) #making the header row bold
+  row_spec(nrow(respondenter_tabell), bold = T) %>% #gör Total-raden fetstilt
+  row_spec(0, bold = T) #gör rubrikraden fetstilt
 ```
 Eftersom svarsbenägenheten varierar mellan olika grupper av invånare kan viss skevhet i representationen uppstå, trots att urvalet från början gjorts på ett representativt sätt. Genom att använda en mixad insamlingsmetod, där fysisk post, telefon och sms har använts för att nå respondenterna, har svarsunderlaget kunnat hålla en bättre representativitet än traditionella underskningar. Viktning mot kön, ålder och urvalsområde har därför inte ansetts vara nödvändig.
 
@@ -425,10 +425,10 @@ I `r (rapportområde)` hade `r round(körkort_totalt)` procent av respondenterna
 
 
 ```{r korkort-bil-table, echo = FALSE, results = "asis"}
-kbl(korkort_bil, caption = "Antal respondenter med körkort och biltillgång", booktabs = T, linesep = "",digits=1) %>%
+kbl(korkort_bil, caption = "Antal respondenter med körkort och biltillgång", booktabs = T, linesep = "",digits=0) %>%
   kable_styling(latex_options = c("striped", "HOLD_position")) %>%
-  row_spec(nrow(korkort_bil), bold = T) %>% #making the Total row bold
-  row_spec(0, bold = T) #making the Header row bold
+  row_spec(nrow(korkort_bil), bold = T) %>% #gör Total-raden fetstilt
+  row_spec(0, bold = T) #gör rubrikraden fetstilt
 ```
 
 ### Antal resor
@@ -531,7 +531,7 @@ En genomsnittlig dag genomfördes `r round(num_trips_all$"Antal resor",0)` resor
 ```{r num-trips-table, echo = FALSE, results = "asis"}
 # kbl(num_trips_gender, digits = 2, caption = "Antal resor per dag per kön", booktabs = T, linesep = "") %>%
 #   kable_styling(latex_options = c("striped", "HOLD_position")) %>%
-#   row_spec(0, bold = T, angle = 45) #making the Header row bold and titles angled for space
+#   row_spec(0, bold = T, angle = 45) #gör rubrikraden fetstilt and titles angled for space
  
 x <- kbl(num_trips_rep, digits = 1, longtable = T, booktabs = T, linesep = "",caption = "Antal resor per dag per kön") %>%
   #Captions appear to create problems with longtable package, gives error "mispaced align"
@@ -540,11 +540,11 @@ x <- kbl(num_trips_rep, digits = 1, longtable = T, booktabs = T, linesep = "",ca
   kable_styling(latex_options = c("striped", "HOLD_position", "repeat_header"),
                 repeat_header_text = "\\textit{(fortsättning)}",
                 repeat_header_continued = "\\textit{(Fortsätter på nästa sida...)}") %>%
-  #row_spec(nrow(reslangd_per_omrade_rep), bold = T) %>% #making the Total row bold
-  row_spec(0, bold = T) %>% #making the Header row bold
+  #row_spec(nrow(reslangd_per_omrade_rep), bold = T) %>% #gör Total-raden fetstilt
+  row_spec(0, bold = T) %>% #gör rubrikraden fetstilt
   column_spec(2:4, width = "2.5cm") %>%
-  column_spec(1:1, width = "2.7cm") %>%
-  column_spec(5:6, width = "2cm")
+  column_spec(1:1, width = "3cm") %>%
+  column_spec(5:6, width = "1.6cm")
 
 for (i in c(1:2)){
   x <- x %>%
@@ -617,24 +617,13 @@ mest_frekvent_andel <- pull(trip_person_mode[nrow(trip_person_mode),mest_frekven
 avvikande_vanligaste_färdmedel <- trip_person_mode_max %>%
   filter(max != mest_frekvent_färdmedel)
 
-
-#Sandlåda
-#test <- trip_person_mode %>%
-#  min
-
-#trip_person_mode[which.min(trip_person_mode$Bil),"Område"]
-
-
-#svarsgrad_min <- slice(svarsgrad,which.min(Svarsfrekvens))
-
-
 #Filtrerar ut extremvärden för att kunna skriva om dem i texten.
 trip_person_mode_extremer_höga <- extremer_höga(trip_person_mode,mest_frekvent_färdmedel)
 trip_person_mode_extremer_låga <- extremer_låga(trip_person_mode,mest_frekvent_färdmedel)
 
 
 #Producerar brödtext.
-text <- paste(mest_frekvent_färdmedel," är det vanligaste färdmedlet i ",rapportområde," och står för ",round(mest_frekvent_andel)," procent av alla resorna.",sep="")
+text <- paste(tolower(mest_frekvent_färdmedel)," är det vanligaste färdmedlet i ",rapportområde," och står för ",round(mest_frekvent_andel)," procent av alla resorna.",sep="")
 
 if (nrow(avvikande_vanligaste_färdmedel) > 0) {
   text <- paste(text,"I zon ",sep="")
@@ -684,39 +673,46 @@ if (mest_frekvent_färdmedel != "Cykel") {
 
 
 ```
-`r (text)`
 
-```{r område-diagram, fig.align='center', fig.hight = 3,fig.width=8, echo = FALSE, results = "asis", fig.cap = "Resor fördelning avseen färdsätt per område."}
-#skapa Percent stacked barchart
-trip_person_mode_plot<-trip_person_mode %>%
-  gather(fard,andel,Bil:Övrigt,factor_key=TRUE) %>%
-  rename("Färdmedel" = fard,"Andel" = andel)
-trip_person_mode_plot$Andel<-round(trip_person_mode_plot$Andel,digit=0)
-omrade_plot <- ggplot(data = trip_person_mode_plot, aes(fill =forcats::fct_rev(factor(Färdmedel)), x = Andel, y = forcats::fct_rev(factor(Område)),label =Andel)) + geom_bar(position = "fill", stat = "identity")+geom_text(data=trip_person_mode_plot[trip_person_mode_plot$Andel>2,],size = 2, position = position_fill(vjust = 0.2))+labs(x="Andel (%)",y="Område",fill="Färdmedel")
-omrade_plot
-```
+I Figur \@ref(fig:område-diagram) framgår att `r (text)` I Tabell \@ref(tab:trips-mode-table) framgår antalet resenärer för respektive färdmedel och `r (nivå)`.
 
 
  ```{r trips-person-mode-table, echo = FALSE, results = "asis"}
 # kbl(trip_person_mode, digits = 0, caption = "Färdmedelsandelar per tätort", booktabs = T, linesep = "") %>%
 #   kable_styling(latex_options = c("striped", "HOLD_position")) %>%
-#   row_spec(nrow(trip_mode), bold = T) %>% #making the Total row bold
-#   row_spec(0, bold = T) #making the Header row bold
+#   row_spec(nrow(trip_mode), bold = T) %>% #gör Total-raden fetstilt
+#   row_spec(0, bold = T) #gör rubrikraden fetstilt
  ```
 
 
 ```{r trips-mode-table, echo = FALSE, results = "asis"}
-kbl(trip_mode, caption = "Färdmedel per tätort", booktabs = T, linesep = "") %>%
+kbl(trip_mode, caption = "Antal resor per färdmedel och område", booktabs = T, linesep = "") %>%
   kable_styling(latex_options = c("striped", "HOLD_position")) %>%
-  row_spec(nrow(trip_mode), bold = T) %>% #making the Total row bold
-  row_spec(0, bold = T) #making the Header row bold)
+  row_spec(nrow(trip_mode), bold = T) %>% #gör Total-raden fetstilt
+  row_spec(0, bold = T) #gör rubrikraden fetstilt)
+```
+
+```{r område-diagram, echo = FALSE, results = "asis", fig.cap = "Resornas färdmedelsfördelning per område."}
+#Percent stacked barchart
+palett <- c("#47e26f","#5144d3","#e8871a","#00c0c7","#9089fa","#b62270")
+trip_person_mode_plot<-trip_person_mode %>%
+  gather(fard,andel,Bil:Övrigt,factor_key=TRUE) %>%
+  mutate(andel=round(andel))
+omrade_plot <- ggplot(data = trip_person_mode_plot, aes(fill =forcats::fct_rev(factor(fard)), x = andel, y = forcats::fct_rev(factor(Område)),label =andel)) + 
+  geom_bar(position = "fill", stat = "identity")+
+  geom_text(aes(label=ifelse(andel>3,andel," ")),size = 3, position = position_fill(vjust = 0.5)) + #etiketter
+  scale_fill_manual(values=palett) + #färger
+  labs(x="Andel (%)",y="Område",fill="Färdmedel")
+omrade_plot
 ```
 
 ### Bakgrundfrågor
 
 #### Färdsätt efter kön
 
-<Diagram med färdmedelsandelar per kön>
+Andelen kvinnor och män  i undersökningen är ungefär lika stora, X respektive Y procent. Hur 
+de reser brukar skilja sig åt, så även i denna mätning. X åker mer bil men har färre förflytt-
+ningar med färdmedel Y.
 
 ```{r trips_gender, echo=FALSE, include=FALSE}
 
@@ -739,8 +735,7 @@ trip_mode_gender <- pers %>%
 ```
 
 
-
-```{r gender-diagram, fig.align='center', fig.hight = 3,fig.width=8, echo = FALSE, results = "asis", fig.cap = "Resor fördelning avseen färdsätt per kön."}
+```{r kön-diagram, echo = FALSE, results = "asis", fig.cap = "Resornas färdmedelsfördelning per kön."}
 #beräkna andel
 trip_mode_gender_andel <- trip_mode_gender %>%
   mutate("Bil" = 100*Bil / Alla,
@@ -752,10 +747,15 @@ trip_mode_gender_andel <- trip_mode_gender %>%
   select(-Alla)
 #skapa Percent stacked barchart
 temp_plot<-trip_mode_gender_andel %>%
-  gather(Färdmedel,Andel,Bil:Övrigt,factor_key=TRUE)
-temp_plot$Andel<-round(temp_plot$Andel,digit=0)
-gender_plot <- ggplot(data = temp_plot, aes(fill =forcats::fct_rev(factor(Färdmedel)), x = Andel, y = forcats::fct_rev(factor(Kön)),label =Andel)) + geom_bar(position = "fill", stat = "identity")+geom_text(data=temp_plot[temp_plot$Andel>2,],size = 2, position = position_fill(vjust = 0.2))+labs(x="Andel(%)",y="Kön",fill="Färdmedel")
+  gather(Färdmedel,Andel,-Kön,factor_key=TRUE) %>%
+  mutate(Andel=round(Andel))
+gender_plot <- ggplot(data = temp_plot, aes(fill =forcats::fct_rev(factor(Färdmedel)), x = Andel, y = forcats::fct_rev(factor(Kön)),label =Andel)) +
+  geom_bar(position = "fill", stat = "identity") +
+  geom_text(aes(label=ifelse(Andel>2,Andel," ")),size = 2, position = position_fill(vjust = 0.5)) + #etiketter
+  scale_fill_manual(values=palett) + #färger
+  labs(x="Andel (%)",y="Kön",fill="Färdmedel")
 gender_plot
+
 ```
 
 Tabell/diagram med färdsätt efter kön.
@@ -763,8 +763,8 @@ Tabell/diagram med färdsätt efter kön.
 ```{r mode-gender-table, echo = FALSE, results = "asis"}
 kbl(trip_mode_gender, caption = "Färdmedel per kön", booktabs = T, linesep = "") %>%
   kable_styling(latex_options = c("striped", "HOLD_position")) %>%
-  row_spec(nrow(trip_mode_gender), bold = T) %>% #making the Total row bold
-  row_spec(0, bold = T) #making the Header row bold
+  row_spec(nrow(trip_mode_gender), bold = T) %>% #gör Total-raden fetstilt
+  row_spec(0, bold = T) #gör rubrikraden fetstilt
 ```
 
 #### Färdsätt efter ålder
@@ -778,7 +778,7 @@ trip_age <- pers %>%
   select(respondentid, alder) %>%
   left_join(mode_per_pers, by = c("respondentid" = "respondentid")) %>%
   filter(!is.na(alder)) %>%
-  group_by(alder = cut(alder, breaks = c(12, 17, 24, 39, 64, 74, 84, 150))) %>%
+  group_by(alder = cut(alder, breaks = c(12, 17, 24, 39, 64, 74, 85))) %>%
   summarize("Bil" = sum(Bil, na.rm = TRUE),
              "Tåg" = sum(Tåg, na.rm = TRUE),
              "Buss" = sum(Buss, na.rm = TRUE),
@@ -787,21 +787,23 @@ trip_age <- pers %>%
              "Övrigt" = sum(Övrigt, na.rm = TRUE),
             "Alla" =Bil + Tåg + Buss + Cykel + Gång + Övrigt) %>%
   mutate(alder = c(
-    "Yngre än 18",
+    "Mellan 15 och 18",
     "Mellan 18 och 24",
     "Mellan 25 och 39",
     "Mellan 40 och 64",
     "Mellan 65 och 74",
-    "Mellan 75 och 84",
-    "Äldre än 85"
+    "Mellan 75 och 85"
   )) %>%
-  rename('Ålder' = alder)
+  rename('Ålder' = alder) %>%
+  bind_rows(summarize(.,
+                      across(where(is.numeric), sum),
+                      across(where(is.character), ~"Totalt")))
 
 ```
 
 Tabell/diagram med färdsätt efter ålder, 12-17 år, 18-24 år, 25-39 år, 40-64 år, 65-74 år, 75-84 år
 
-```{r age-diagram, fig.align='center', fig.hight=3, fig.width = 8, echo = FALSE, results = "asis", fig.cap = "Resor fördelning avseen färdsätt per åldersgrupp."}
+```{r ålder-diagram, echo = FALSE, results = "asis", fig.cap = "Resornas färdmedelsfördelning per åldersgrupp."}
 #beräkna andel
 trip_age_andel <- trip_age %>%
   mutate("Bil" = 100*Bil / Alla,
@@ -813,16 +815,22 @@ trip_age_andel <- trip_age %>%
   select(-Alla)
 #skapa Percent stacked barchart
 temp_plot<-trip_age_andel %>%
-  gather(Färdmedel,Andel,Bil:Övrigt,factor_key=TRUE)
-temp_plot$Andel<-round(temp_plot$Andel,digit=0)
-age_plot <- ggplot(data = temp_plot, aes(fill =forcats::fct_rev(factor(Färdmedel)), x = Andel, y = forcats::fct_rev(factor(Ålder)),label =Andel)) + geom_bar(position = "fill", stat = "identity")+geom_text(data=temp_plot[temp_plot$Andel>2,],size = 2, position = position_fill(vjust = 0.2))+labs(x="Andel(%)",y="Ålder",fill="Färdmedel")
+  gather(Färdmedel,Andel,-Ålder,factor_key=TRUE) %>%
+  mutate(Andel=round(Andel))
+age_plot <- ggplot(data = temp_plot, aes(fill =forcats::fct_rev(factor(Färdmedel)), x = Andel, y = forcats::fct_rev(factor(Ålder)),label =Andel))  + 
+  # scale_y_discrete(limits = rev(unique(temp_plot$Ålder))) +
+  geom_bar(position = "fill", stat = "identity") +
+  geom_text(aes(label=ifelse(Andel>2,Andel," ")),size = 2, position = position_fill(vjust = 0.5)) + #etiketter
+  scale_fill_manual(values=palett) + #färger
+  labs(x="Andel (%)",y="Ålder",fill="Färdmedel")
 age_plot
 ```
 
 ```{r mode-age-table, echo = FALSE, results = "asis"}
 kbl(trip_age, caption = "Färdmedel per åldersgrupp", booktabs = T, linesep = "") %>%
   kable_styling(latex_options = c("striped", "HOLD_position")) %>%
-  row_spec(0, bold = T) #making the Header row bold
+  row_spec(nrow(trip_mode), bold = T) %>% #gör Total-raden fetstilt
+  row_spec(0, bold = T) #gör rubrikraden fetstilt
 ```
 
 
@@ -869,9 +877,9 @@ trip_purpose_mode <- rvu %>%
     filter(!is.na(fardmedel.kat)) %>%
     left_join(purposes, by = c("b2" = "answer_id")) %>%
     group_by(answer) %>%
-    summarise("Kollektiv buss" = sum(fardmedel.kat == "Kollektiv_buss", na.rm = TRUE),
-              "Kollektiv tåg" = sum(fardmedel.kat == "Kollektiv_tåg", na.rm = TRUE),
-              "Bil" = sum(fardmedel.kat == "Bil", na.rm = TRUE),
+    summarise("Bil" = sum(fardmedel.kat == "Bil", na.rm = TRUE),
+              "Tåg" = sum(fardmedel.kat == "Tåg", na.rm = TRUE),
+              "Buss" = sum(fardmedel.kat == "Buss", na.rm = TRUE),
               "Cykel" = sum(fardmedel.kat == "Cykel", na.rm = TRUE),
               "Gång" = sum(fardmedel.kat == "Gång", na.rm = TRUE),
               "Annat" = sum(fardmedel.kat == "Annat", na.rm = TRUE),
@@ -882,11 +890,9 @@ trip_purpose_mode <- rvu %>%
     rename("Ärende" = answer)
 ```
 
-```{r purpose-mode-diagram, fig.align='center', fig.hight = 3,fig.width=8, echo = FALSE, results = "asis", fig.cap = "Resor fördelning avseen färdsätt per ärende."}
+```{r ärende-diagram, echo = FALSE, results = "asis", fig.cap = "Resornas färdmedelsfördelning per ärende"}
 #beräkna andel
 temp_plot<-trip_purpose_mode
-colnames(temp_plot)[which(names(temp_plot) == "Kollektiv buss")] <- "Buss"
-colnames(temp_plot)[which(names(temp_plot) == "Kollektiv tåg")] <- "Tåg"
 colnames(temp_plot)[which(names(temp_plot) == "Annat")] <- "Övrigt"
 temp_plot <- temp_plot %>%
   mutate("Bil" = 100*Bil / Total,
@@ -900,17 +906,23 @@ temp_plot <- temp_plot %>%
 #skapa Percent stacked barchart 
 
 temp_plot<-temp_plot %>%
-  gather(Färdmedel,Andel,Buss:Övrigt,factor_key=TRUE)
-temp_plot$Andel<-round(temp_plot$Andel,digit=0)
-purpose_plot <- ggplot(data = temp_plot, aes(fill =forcats::fct_rev(factor(Färdmedel)), x = Andel, y = forcats::fct_rev(factor(Ärende)),label =Andel)) + geom_bar(position = "fill", stat = "identity")+geom_text(data=temp_plot[temp_plot$Andel>10,],size = 2, position = position_fill(vjust = 0.3))+labs(x="Andel(%)",y="Ärende",fill="Färdmedel")
+  gather(Färdmedel,Andel,-Ärende,factor_key=TRUE) %>%
+  mutate(Andel=round(Andel))
+purpose_plot <- ggplot(data = temp_plot, aes(fill =forcats::fct_rev(factor(Färdmedel)), x = Andel, y = forcats::fct_rev(factor(Ärende)),label =Andel)) +
+  scale_y_discrete(limits = rev(unique(temp_plot$Ärende))) + #Placerar ärendekategorierna i en bättre ordning
+  geom_bar(position = "fill", stat = "identity") +
+  geom_text(aes(label=ifelse(Andel>2,Andel," ")),size = 2, position = position_fill(vjust = 0.5)) + #etiketter
+  scale_fill_manual(values=palett) + #färger
+  labs(x="Andel (%)",y="Ärende",fill="Färdmedel")
 purpose_plot
+
 ```
 
 ```{r trip-purpose-mode-table, echo = FALSE, result="asis"}
 kable(trip_purpose_mode, caption = "Resärende per färdmedel", booktabs = T, linesep = "") %>%
   kable_styling(latex_options = c("striped", "HOLD_position")) %>%
-  row_spec(nrow(trip_purpose_mode), bold = T) %>% #making the Total row bold
-  row_spec(0, bold = T) #making the Header row bold)
+  row_spec(nrow(trip_purpose_mode), bold = T) %>% #gör Total-raden fetstilt
+  row_spec(0, bold = T) #gör rubrikraden fetstilt)
 ```
 
 
@@ -1041,8 +1053,8 @@ x <- kbl(reslangd_per_omrade_rep, longtable = T, booktabs = T, linesep = "") %>%
   kable_styling(latex_options = c("striped", "HOLD_position", "repeat_header"),
                 repeat_header_text = "\\textit{(fortsättning)}",
                 repeat_header_continued = "\\textit{(Fortsätter på nästa sida...)}") %>%
-  row_spec(nrow(reslangd_per_omrade_rep), bold = T) %>% #making the Total row bold
-  row_spec(0, bold = T) #making the Header row bold
+  row_spec(nrow(reslangd_per_omrade_rep), bold = T) %>% #gör Total-raden fetstilt
+  row_spec(0, bold = T) #gör rubrikraden fetstilt
 
 for (i in c(1:(length(antal_omraden)-1))){
   x <- x %>%
@@ -1115,7 +1127,7 @@ od_matrix_perc <- round(od_matrix_perc/sum(od_matrix_perc)*100)
 kable(od_matrix_perc, caption = "O-D-Matris", booktabs = T, linesep = "") %>%
   kable_styling(latex_options = c("striped", "HOLD_position"),
                 full_width = TRUE) %>%
-  row_spec(0, bold = T, angle = 45) %>% #making the Header row bold)
+  row_spec(0, bold = T, angle = 45) %>% #gör rubrikraden fetstilt)
   column_spec(1, bold = T, width = "2cm")
 ```
 
@@ -1126,13 +1138,13 @@ Tabell med genomsnittlig reslängd och uppräknat antalresor och trafikarbete f�
 
 Tabell/diagram med antal resor per färdmedel efter färmedelslängd Graf med färdmedelsandelar över x = antal kilometer.
 
-```{r distans-mode-diagram, fig.align='center', fig.hight = 3,fig.width=8, echo = FALSE, results = "asis", fig.cap = "Resor fördelning avseen färdsätt per avstånd klass."}
+```{r avstånds-diagram, echo = FALSE, results = "asis", fig.cap = "Resornas färdmedelsfördelning per avståndsklass."}
 rvu_avs <- rvu %>%
-  filter(!is.na(avstand)) %>%
+  filter(!is.na(avstand)&avstand>0) %>%
   rename(Färdmedel = fardmedel.kat) %>%
   select(respondentid,Färdmedel,avstand,Område,Område_kod)
-rvu_avs$km<-ceiling(rvu_avs$avstand/1000)
-rvu_avs$kmklass<-ifelse(rvu_avs$km>15,16,rvu_avs$km)
+rvu_avs$km<-round(rvu_avs$avstand/2/1000)
+rvu_avs$kmklass<-ifelse(rvu_avs$km>15/2,16,rvu_avs$km*2)
 rvu_avs$antal<-1
 agg_rvu_avs <-
   aggregate(rvu_avs[,c('antal'), drop=FALSE], by=list(
@@ -1143,6 +1155,7 @@ agg_rvu_avs <-
 agg_rvu_avs<-spread(agg_rvu_avs,key=fard,value=antal)
 agg_rvu_avs[is.na(agg_rvu_avs)]<-0
 agg_rvu_avs$Total<-agg_rvu_avs$Bil+agg_rvu_avs$Buss+agg_rvu_avs$Tåg+agg_rvu_avs$Cykel+agg_rvu_avs$Gång
+agg_rvu_avs <- agg_rvu_avs[c("avstand","Bil","Tåg","Buss","Cykel","Gång","Total")]
 temp_plot <- agg_rvu_avs %>%
   mutate("Bil" = 100*Bil / Total,
          "Tåg" = 100*Tåg / Total,
@@ -1150,9 +1163,13 @@ temp_plot <- agg_rvu_avs %>%
          "Cykel" = 100*Cykel / Total,
          "Gång" = 100*Gång / Total) %>%
   select(-Total) %>%
-  gather(Färdmedel,Andel,Bil:Tåg,factor_key=TRUE)
-temp_plot$Andel<-round(temp_plot$Andel,digit=0)
-avstand_plot <- ggplot(data = temp_plot, aes(fill =forcats::fct_rev(factor(Färdmedel)), y = Andel, x = factor(avstand),label =Andel)) + geom_bar(position = "fill", stat = "identity")+geom_text(data=temp_plot[temp_plot$Andel>2,],size = 2, position = position_fill(vjust = 0.2))+labs(y="Andel(%)",x="Avstånd (km)",fill="Färdmedel")
+  gather(Färdmedel,Andel,Bil:Gång,factor_key=TRUE) %>%
+  mutate(Andel=round(Andel))
+avstand_plot <- ggplot(data = temp_plot, aes(fill =forcats::fct_rev(factor(Färdmedel)), y = Andel, x = factor(avstand),label =Andel)) +
+  geom_bar(position = "fill", stat = "identity") +
+  geom_text(data=temp_plot[temp_plot$Andel>3,],size = 3, position = position_fill(vjust = 0.5)) + #etiketter
+  scale_fill_manual(values=palett[-(1:1)]) + #färger
+  labs(y="Andel (%)",x="Avstånd (km)",fill="Färdmedel")
 avstand_plot
 ```
 
@@ -1228,7 +1245,7 @@ rvu_distance <- rvu_distance %>% rename("Reslängd" = avstand)
 ```{r distance-mode-table, echo = FALSE, results = "asis"}
 kable(rvu_distance, caption = "Reslängd per färdsätt", booktabs = T, linesep = "") %>%
   kable_styling(latex_options = c("striped", "HOLD_position")) %>%
-  row_spec(0, bold = T) #making the Header row bold
+  row_spec(0, bold = T) #gör rubrikraden fetstilt
 ```
 
 ```{r purpose-diagram, echo = FALSE, results = "asis", fig.cap = "Antal resor per ärende."}
@@ -1275,7 +1292,7 @@ trip_purpose_area <- trip_purpose_all %>%
 kable(trip_purpose_area, caption = "Resärende per område", booktabs = T, linesep = "") %>%
   kable_styling(latex_options = c("striped", "HOLD_position"),
                 full_width = TRUE) %>%
-  row_spec(0, bold = T, angle = 60) %>% #making the Header row bold
+  row_spec(0, bold = T, angle = 60) %>% #gör rubrikraden fetstilt
   column_spec(1, width = "2cm")
 
 write.csv(trip_purpose_area, "trip_purpose_area.csv")
@@ -1298,7 +1315,7 @@ trip_purpose_area_percent <- trip_purpose_all %>%
 kable(trip_purpose_area_percent, caption = "Resärende per område (procent)", booktabs = T, linesep = "") %>%
   kable_styling(latex_options = c("striped", "HOLD_position"),
                 full_width = TRUE) %>%
-  row_spec(0, bold = T, angle = 60) %>% #making the Header row bold
+  row_spec(0, bold = T, angle = 60) %>% #gör rubrikraden fetstilt
   column_spec(1,width = "2cm")
 
 write.csv(trip_purpose_area, "trip_purpose_area_percent.csv")
@@ -1320,8 +1337,8 @@ drivers_license_area <- pers %>%
 ```{r drivers-license-area-table, echo = FALSE, results = "asis"}
 kable(drivers_license_area, caption = "Körkortsinnehav per område", booktabs = T, linesep = "") %>%
   kable_styling(latex_options = c("striped", "HOLD_position")) %>%
-  #row_spec(nrow(drivers_license_area), bold = T) %>% #making the Total row bold
-  row_spec(0, bold = T) #making the Header row bold
+  #row_spec(nrow(drivers_license_area), bold = T) %>% #gör Total-raden fetstilt
+  row_spec(0, bold = T) #gör rubrikraden fetstilt
 ```
 
 ```{r car_ownership_area, echo=FALSE, include = FALSE}
@@ -1340,8 +1357,8 @@ car_ownership_area <- pers %>%
 ```{r car-ownership-area-table, echo = FALSE, results = "asis"}
 kable(car_ownership_area, caption = "Bilinnehav per område", booktabs = T, linesep = "") %>%
   kable_styling(latex_options = c("striped", "HOLD_position")) %>%
-  #row_spec(nrow(drivers_license_area), bold = T) %>% #making the Total row bold
-  row_spec(0, bold = T) #making the Header row bold)
+  #row_spec(nrow(drivers_license_area), bold = T) %>% #gör Total-raden fetstilt
+  row_spec(0, bold = T) #gör rubrikraden fetstilt)
 ```
 
 
