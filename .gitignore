@@ -6,4 +6,5 @@
 *.zip
 *.p
 *.pdf
+*.RData
 .Rproj.user
