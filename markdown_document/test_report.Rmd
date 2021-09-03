@@ -1,5 +1,4 @@
 ---
-title: "test_rvu_v1.1"
 author: "WSP"
 date: "`r Sys.Date()`"
 site: bookdown::bookdown_site
@@ -28,7 +27,19 @@ header-includes:
   - \usepackage[normalem]{ulem}
   - \usepackage{makecell}
   - \usepackage{xcolor}
+  - \usepackage[document]{ragged2e}
+---
 
+```{r indata, echo=FALSE, include = FALSE}
+#Nedan specificeras indata/globala parametrar
+#Definierar om respondenter ska delas upp på kommun, tätort eller deso-nivå:
+rapportområde <- 'Bålsta'
+nivå <- "deso" #'kommun' #'tatort' #vilken områdesnivån som resultaten ska redovisas på. Om rapportområdet är en region, bör kommun väljas och om det är en tätort bör deso väljas osv...
+```
+---
+title: RVU `r rapportområde`
+---
+\raggedright
 ---
 
 # Resvaneundersökning Bålsta
@@ -43,6 +54,15 @@ library(bookdown)
 library(pxweb)
 library(scales)
 library(stringi)
+inline_hook<-function(x){
+  if(is.numeric(x)){
+    formatted<-format(x,big.mark = " ")
+  }
+  else{
+    formatted<-x
+  }
+}
+knit_hooks$set(inline = inline_hook)
 ```
 
 ```{r plot-theme-creation, include = FALSE}
@@ -76,13 +96,6 @@ rvu_theme <- function() {
 
 options(knitr.table.format = "latex")
 
-```
-
-```{r indata, echo=FALSE, include = FALSE}
-#Nedan specificeras indata/globala parametrar
-#Definierar om respondenter ska delas upp på kommun, tätort eller deso-nivå:
-rapportområde <- 'Bålsta'
-nivå <- "deso" #'kommun' #'tatort' #vilken områdesnivån som resultaten ska redovisas på. Om rapportområdet är en region, bör kommun väljas och om det är en tätort bör deso väljas osv...
 ```
 
 ```{r funktioner, echo=FALSE, include = FALSE}
@@ -337,7 +350,7 @@ Kollektivtrafiksbarometerns attityd- och resvaneundersökning är en årlig och 
 Ur undersökningen har de `r (antal_individer)` respondenter som bor i `r (rapportområde)` valts ut. I Tabell \@ref(tab:svarsfrekvens-table) återfinns befolkning, antal respondenter och andelen svarande av befolkningen. Respondenternas kön och ålder per område finns redovisade i Tabell \@ref(tab:repondant-table).
 
 ```{r svarsfrekvens-table, echo = FALSE, results = "asis"}
-kbl(svarsgrad_tabell, caption = "Antal svar jämfört med befolkningen (15 år och äldre) i respektive område", booktabs = T, linesep = "") %>%
+kbl(svarsgrad_tabell, caption = "Antal svar jämfört med befolkningen (15 år och äldre) i respektive område", booktabs = T, linesep = "",format.args = list( big.mark = " ")) %>%
   kable_styling(latex_options = c("striped", "HOLD_position")) %>%
   row_spec(nrow(svarsgrad_tabell), bold = T) %>% #gör Total-raden fetstilt
   row_spec(0, bold = T) #gör rubrikraden fetstilt
@@ -347,7 +360,7 @@ kbl(svarsgrad_tabell, caption = "Antal svar jämfört med befolkningen (15 år o
 
 ```{r repondant-table, echo = FALSE, results = "asis"}
 #kable(respondenter, caption = "Antal svar per kön och åldersgrupp")
-kbl(respondenter_tabell, caption = "Antal svar per kön och åldersgrupp", booktabs = T, linesep = "") %>%
+kbl(respondenter_tabell, caption = "Antal svar per kön och åldersgrupp", booktabs = T, linesep = "",format.args = list( big.mark = " ")) %>%
   kable_styling(latex_options = c("striped", "HOLD_position")) %>%
   row_spec(nrow(respondenter_tabell), bold = T) %>% #gör Total-raden fetstilt
   row_spec(0, bold = T) #gör rubrikraden fetstilt
@@ -433,7 +446,7 @@ I `r (rapportområde)` hade `r round(körkort_totalt)` procent av respondenterna
 
 
 ```{r korkort-bil-table, echo = FALSE, results = "asis"}
-kbl(korkort_bil, caption = "Antal respondenter med körkort och biltillgång", booktabs = T, linesep = "",digits=0) %>%
+kbl(korkort_bil, caption = "Antal respondenter med körkort och biltillgång", booktabs = T, linesep = "",digits=0,format.args = list( big.mark = " ")) %>%
   kable_styling(latex_options = c("striped", "HOLD_position")) %>%
   row_spec(nrow(korkort_bil), bold = T) %>% #gör Total-raden fetstilt
   row_spec(0, bold = T) #gör rubrikraden fetstilt
@@ -541,7 +554,7 @@ En genomsnittlig dag genomfördes `r round(num_trips_all$"Antal resor",0)` resor
 #   kable_styling(latex_options = c("striped", "HOLD_position")) %>%
 #   row_spec(0, bold = T, angle = 45) #gör rubrikraden fetstilt and titles angled for space
  
-x <- kbl(num_trips_rep, digits = 1, longtable = T, booktabs = T, linesep = "",caption = "Antal resor per dag per kön") %>%
+x <- kbl(num_trips_rep, digits = 1, longtable = T, booktabs = T, linesep = "",caption = "Antal resor per dag per kön",format.args = list( big.mark = " ")) %>%
   #Captions appear to create problems with longtable package, gives error "mispaced align"
   #See here for solution, but don't know how to implement:
   #https://tex.stackexchange.com/a/205468
@@ -693,7 +706,7 @@ kbl(trip_person_mode, digits = 0, caption = "Färdmedelsandelar per tätort", bo
 
 
 ```{r trips-mode-table, echo = FALSE, results = "asis"}
-kbl(trip_mode, caption = "Antal resor per färdmedel och område", booktabs = T, linesep = "") %>%
+kbl(trip_mode, caption = "Antal resor per färdmedel och område", booktabs = T, linesep = "",format.args = list( big.mark = " ")) %>%
   kable_styling(latex_options = c("striped", "HOLD_position")) %>%
   row_spec(nrow(trip_mode), bold = T) %>% #gör Total-raden fetstilt
   row_spec(0, bold = T) #gör rubrikraden fetstilt)
@@ -706,6 +719,7 @@ trip_person_mode_plot<-trip_person_mode %>%
   gather(fard,andel,Bil:Övrigt,factor_key=TRUE) %>%
   mutate(andel=round(andel))
 omrade_plot <- ggplot(data = trip_person_mode_plot, aes(fill =forcats::fct_rev(factor(fard)), x = andel, y = forcats::fct_rev(factor(Område)),label =andel)) + 
+  theme(panel.background = element_blank()) +
   geom_bar(position = "fill", stat = "identity")+
   geom_text(aes(label=ifelse(andel>3,andel," ")),size = 3, position = position_fill(vjust = 0.5)) + #etiketter
   scale_fill_manual(values=palett) + #färger
@@ -759,6 +773,7 @@ temp_plot<-trip_mode_gender_andel %>%
   gather(Färdmedel,Andel,-Kön,factor_key=TRUE) %>%
   mutate(Andel=round(Andel))
 gender_plot <- ggplot(data = temp_plot, aes(fill =forcats::fct_rev(factor(Färdmedel)), x = Andel, y = forcats::fct_rev(factor(Kön)),label =Andel)) +
+  theme(panel.background = element_blank()) +
   geom_bar(position = "fill", stat = "identity") +
   geom_text(aes(label=ifelse(Andel>3,Andel," ")),size = 3, position = position_fill(vjust = 0.5)) + #etiketter
   scale_fill_manual(values=palett) + #färger
@@ -769,7 +784,7 @@ gender_plot
 ```
 
 ```{r mode-gender-table, echo = FALSE, results = "asis"}
-# kbl(trip_mode_gender, caption = "Färdmedel per kön", booktabs = T, linesep = "") %>%
+# kbl(trip_mode_gender, caption = "Färdmedel per kön", booktabs = T, linesep = "",format.args = list( big.mark = " ")) %>%
 #   kable_styling(latex_options = c("striped", "HOLD_position")) %>%
 #   row_spec(nrow(trip_mode_gender), bold = T) %>% #gör Total-raden fetstilt
 #   row_spec(0, bold = T) #gör rubrikraden fetstilt
@@ -826,6 +841,7 @@ temp_plot<-trip_age_andel %>%
   gather(Färdmedel,Andel,-Ålder,factor_key=TRUE) %>%
   mutate(Andel=round(Andel))
 age_plot <- ggplot(data = temp_plot, aes(fill =forcats::fct_rev(factor(Färdmedel)), x = Andel, y = forcats::fct_rev(factor(Ålder)),label =Andel))  + 
+  theme(panel.background = element_blank()) +
   # scale_y_discrete(limits = rev(unique(temp_plot$Ålder))) +
   geom_bar(position = "fill", stat = "identity") +
   geom_text(aes(label=ifelse(Andel>3,Andel," ")),size = 3, position = position_fill(vjust = 0.5)) + #etiketter
@@ -836,7 +852,7 @@ age_plot
 ```
 
 ```{r mode-age-table, echo = FALSE, results = "asis"}
-# kbl(trip_age, caption = "Färdmedel per åldersgrupp", booktabs = T, linesep = "") %>%
+# kbl(trip_age, caption = "Färdmedel per åldersgrupp", booktabs = T, linesep = "",format.args = list( big.mark = " ")) %>%
 #   kable_styling(latex_options = c("striped", "HOLD_position")) %>%
 #   row_spec(nrow(trip_mode), bold = T) %>% #gör Total-raden fetstilt
 #   row_spec(0, bold = T) #gör rubrikraden fetstilt
@@ -920,6 +936,7 @@ temp_plot<-temp_plot %>%
   gather(Färdmedel,Andel,-Sysselsättning,factor_key=TRUE) %>%
   mutate(Andel=round(Andel))
 sys_plot <- ggplot(data = temp_plot, aes(fill =forcats::fct_rev(factor(Färdmedel)), x = Andel, y = forcats::fct_rev(factor(Sysselsättning)),label =Andel)) +
+  theme(panel.background = element_blank()) +
   scale_y_discrete(limits = rev(unique(temp_plot$Sysselsättning))) + #Placerar ärendekategorierna i en bättre ordning
   geom_bar(position = "fill", stat = "identity") +
   geom_text(aes(label=ifelse(Andel>3,Andel," ")),size = 3, position = position_fill(vjust = 0.5)) + #etiketter
@@ -931,7 +948,7 @@ sys_plot
 ```
 
 ```{r trip-sys-mode-table, echo = FALSE, result="asis"}
-# kable(trip_sys_mode, caption = "Resärende per färdmedel", booktabs = T, linesep = "") %>%
+# kable(trip_sys_mode, caption = "Resärende per färdmedel", booktabs = T, linesep = "",format.args = list( big.mark = " ")) %>%
 #   kable_styling(latex_options = c("striped", "HOLD_position")) %>%
 #   row_spec(nrow(trip_sys_mode), bold = T) %>% #gör Total-raden fetstilt
 #   row_spec(0, bold = T) #gör rubrikraden fetstilt)
@@ -1008,6 +1025,7 @@ temp_plot<-temp_plot %>%
   gather(Färdmedel,Andel,-Ärende,factor_key=TRUE) %>%
   mutate(Andel=round(Andel))
 purpose_plot <- ggplot(data = temp_plot, aes(fill =forcats::fct_rev(factor(Färdmedel)), x = Andel, y = forcats::fct_rev(factor(Ärende)),label =Andel)) +
+  theme(panel.background = element_blank()) +
   scale_y_discrete(limits = rev(unique(temp_plot$Ärende))) + #Placerar ärendekategorierna i en bättre ordning
   geom_bar(position = "fill", stat = "identity") +
   geom_text(aes(label=ifelse(Andel>3,Andel," ")),size = 3, position = position_fill(vjust = 0.5)) + #etiketter
@@ -1019,7 +1037,7 @@ purpose_plot
 ```
 
 ```{r trip-purpose-mode-table, echo = FALSE, result="asis"}
-# kable(trip_purpose_mode, caption = "Resärende per färdmedel", booktabs = T, linesep = "") %>%
+# kable(trip_purpose_mode, caption = "Resärende per färdmedel", booktabs = T, linesep = "",format.args = list( big.mark = " ")) %>%
 #   kable_styling(latex_options = c("striped", "HOLD_position")) %>%
 #   row_spec(nrow(trip_purpose_mode), bold = T) %>% #gör Total-raden fetstilt
 #   row_spec(0, bold = T) #gör rubrikraden fetstilt)
@@ -1146,7 +1164,7 @@ I resdagboken har intervjupersonerna fått fylla i plats för resmål, som spara
 
 ```{r travel_dist-table1, echo = FALSE, results = "asis"}
 
-x <- kbl(reslangd_per_omrade_rep, longtable = T, booktabs = T, linesep = "") %>%
+x <- kbl(reslangd_per_omrade_rep, longtable = T, booktabs = T, linesep = "",format.args = list( big.mark = " ")) %>%
   #Captions appear to create problems with longtable package, gives error "mispaced align"
   #See here for solution, but don't know how to implement:
   #https://tex.stackexchange.com/a/205468
@@ -1298,7 +1316,7 @@ Den vanligaste förekommande resan inom ett område sker i X. Den vanligaste res
 (Behöver generaliseras för att visa tätortsnivå om kommun-rapport och kommunnivå om regionrapport)
 
 ```{r od-matrix-table, echo = FALSE, result="asis"}
-kable(od_matrix_perc, caption = "Fördelning av resorna inom tätorten.", booktabs = T, linesep = "") %>%
+kable(od_matrix_perc, caption = "Fördelning av resorna inom tätorten.", booktabs = T, linesep = "",format.args = list( big.mark = " ")) %>%
   kable_styling(latex_options = c("striped", "HOLD_position"),
                 full_width = TRUE) %>%
   row_spec(0, bold = T, angle = 45) %>% #gör rubrikraden fetstilt)
@@ -1363,7 +1381,7 @@ od_matrix_perc <- round(od_matrix_perc/od_matrix_perc["Totalt","Totalt"]*100)
 ```
 
 ```{r od-matrix-extern-table, echo = FALSE, result="asis"}
-kable(od_matrix_perc, caption = "Resor av invånare i Bålsta till och/eller från andra tätorter.", booktabs = T, linesep = "") %>%
+kable(od_matrix_perc, caption = "Resor av invånare i Bålsta till och/eller från andra tätorter.", booktabs = T, linesep = "",format.args = list( big.mark = " ")) %>%
   kable_styling(latex_options = c("striped", "HOLD_position"),
                 full_width = TRUE) %>%
   row_spec(0, bold = T, angle = 45) %>% #gör rubrikraden fetstilt)
@@ -1436,7 +1454,7 @@ rvu_distance <- rvu_distance %>% rename("Reslängd" = avstand)
 ```
 
 ```{r distance-mode-table, echo = FALSE, results = "asis"}
-kable(rvu_distance, caption = "Reslängd per färdsätt", booktabs = T, linesep = "") %>%
+kable(rvu_distance, caption = "Reslängd per färdsätt", booktabs = T, linesep = "",format.args = list( big.mark = " ")) %>%
   kable_styling(latex_options = c("striped", "HOLD_position")) %>%
   row_spec(0, bold = T) #gör rubrikraden fetstilt
 ```
@@ -1482,7 +1500,7 @@ trip_purpose_area <- trip_purpose_all %>%
 ```
 
 ```{r trip-purpose-area-table, echo = FALSE, results = "asis"}
-kable(trip_purpose_area, caption = "Resärende per område", booktabs = T, linesep = "") %>%
+kable(trip_purpose_area, caption = "Resärende per område", booktabs = T, linesep = "",format.args = list( big.mark = " ")) %>%
   kable_styling(latex_options = c("striped", "HOLD_position"),
                 full_width = TRUE) %>%
   row_spec(0, bold = T, angle = 60) %>% #gör rubrikraden fetstilt
@@ -1505,7 +1523,7 @@ trip_purpose_area_percent <- trip_purpose_all %>%
 ```
 
 ```{r trip-purpose-area-percent-table, echo = FALSE, results = "asis"}
-kable(trip_purpose_area_percent, caption = "Resärende per område (procent)", booktabs = T, linesep = "") %>%
+kable(trip_purpose_area_percent, caption = "Resärende per område (procent)", booktabs = T, linesep = "",format.args = list( big.mark = " ")) %>%
   kable_styling(latex_options = c("striped", "HOLD_position"),
                 full_width = TRUE) %>%
   row_spec(0, bold = T, angle = 60) %>% #gör rubrikraden fetstilt
@@ -1528,7 +1546,7 @@ drivers_license_area <- pers %>%
 ```
 
 ```{r drivers-license-area-table, echo = FALSE, results = "asis"}
-kable(drivers_license_area, caption = "Körkortsinnehav per område", booktabs = T, linesep = "") %>%
+kable(drivers_license_area, caption = "Körkortsinnehav per område", booktabs = T, linesep = "",format.args = list( big.mark = " ")) %>%
   kable_styling(latex_options = c("striped", "HOLD_position")) %>%
   #row_spec(nrow(drivers_license_area), bold = T) %>% #gör Total-raden fetstilt
   row_spec(0, bold = T) #gör rubrikraden fetstilt
@@ -1548,7 +1566,7 @@ car_ownership_area <- pers %>%
 ```
 
 ```{r car-ownership-area-table, echo = FALSE, results = "asis"}
-kable(car_ownership_area, caption = "Bilinnehav per område", booktabs = T, linesep = "") %>%
+kable(car_ownership_area, caption = "Bilinnehav per område", booktabs = T, linesep = "",format.args = list( big.mark = " ")) %>%
   kable_styling(latex_options = c("striped", "HOLD_position")) %>%
   #row_spec(nrow(drivers_license_area), bold = T) %>% #gör Total-raden fetstilt
   row_spec(0, bold = T) #gör rubrikraden fetstilt)
