@@ -36,7 +36,7 @@ header-includes:
 ```{r setup, include=FALSE}
 library(knitr)
 library(kableExtra)
-library(ggplot2) #kanske ta bort
+#library(ggplot2) #kanske ta bort
 library(tidyverse)
 library(readxl)
 library(bookdown)
@@ -366,6 +366,7 @@ Avgörande för färdmedelsvalet är körkortsinnehav och biltillgång.
 
 ```{r korkort, echo=FALSE, include=FALSE}
 korkort_bil <- pers %>%
+  filter(!(is.na(h4) & is.na(h5))) %>%
   mutate(Område = ifelse(is.na(Område), "Ej angivet", Område)) %>%
   select(Område, h4, h5) %>%
   group_by(Område) %>%
@@ -1176,13 +1177,19 @@ andelen är som högst vid riktigt korta avstånd.
 Nedan följer ett diagram som visar färdmedelsfördelnjing per reslängd.
 
 ```{r avstånds-diagram, echo = FALSE, results = "asis", fig.cap = "Resornas färdmedelsfördelning per avståndsklass."}
+#Lägger till avståndsklass per resa
 rvu_avs <- rvu %>%
   filter(!is.na(avstand)&avstand>0) %>%
   rename(Färdmedel = fardmedel.kat) %>%
   select(respondentid,Färdmedel,avstand,Område,Område_kod)
-rvu_avs$km<-round(rvu_avs$avstand/4/1000)
-rvu_avs$kmklass<-ifelse(rvu_avs$km>15/4,16,rvu_avs$km*2)
+rvu_avs$km <- round(rvu_avs$avstand/1000)
+rvu_avs <- rvu_avs %>%
+  group_by(kmklass = cut(km, breaks = c(0, 2, 5, 10, 25, 50, 1000)))
+
+#rvu_avs$kmklass<-ifelse(rvu_avs$km>32/4,32,rvu_avs$km*4)
 rvu_avs$antal<-1
+
+#Aggregerar avståndsklasser
 agg_rvu_avs <-
   aggregate(rvu_avs[,c('antal'), drop=FALSE], by=list(
     avstand = rvu_avs$kmklass,
@@ -1193,6 +1200,17 @@ agg_rvu_avs<-spread(agg_rvu_avs,key=fard,value=antal)
 agg_rvu_avs[is.na(agg_rvu_avs)]<-0
 agg_rvu_avs$Total<-agg_rvu_avs$Bil+agg_rvu_avs$Buss+agg_rvu_avs$Tåg+agg_rvu_avs$Cykel+agg_rvu_avs$Gång
 agg_rvu_avs <- agg_rvu_avs[c("avstand","Bil","Tåg","Buss","Cykel","Gång","Total")]
+agg_rvu_avs <- mutate(agg_rvu_avs,avstand = c(
+    "0-2",
+    "2-5",
+    "5-10",
+    "10-25",
+    "25-50",
+    "50+"
+  )) 
+
+
+#Skapar ett procentuellt stapeldiagram
 temp_plot <- agg_rvu_avs %>%
   mutate("Bil" = 100*Bil / Total,
          "Tåg" = 100*Tåg / Total,
@@ -1210,7 +1228,25 @@ avstand_plot <- ggplot(data = temp_plot, aes(fill =forcats::fct_rev(factor(Färd
   scale_y_continuous(labels = scales::percent)
 avstand_plot
 ```
+```{r avstånds-histogram, echo = FALSE, results = "asis", fig.cap = "Resornas färdmedelsfördelning per avståndsklass."}
 
+# agg_rvu_avs_hist <- agg_rvu_avs %>%
+#   select(avstand,Total) %>%
+#   mutate(avstand=as.factor(avstand))
+# 
+# agg_rvu_avs_histplot <- ggplot(agg_rvu_avs_hist, aes(avstand, Total, fill = avstand)) +
+#     geom_bar(stat = "identity") +
+#     rvu_theme() +
+#     scale_fill_brewer(palette = "Set3") +
+#     labs(
+#         x = "Avstånd",
+#         y = "Antal resor",
+#         title = "Avståndsfördelning."
+#     )
+# 
+# 
+# agg_rvu_avs_histplot
+```
 
 #### Reserelationer inom `r (rapportområde)`
 
