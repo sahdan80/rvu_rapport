@@ -12,15 +12,15 @@
 \contentsline {section}{\numberline {3}Resultat}{4}{section.3}%
 \contentsline {subsection}{\numberline {3.1}Körkort och biltillgång}{4}{subsection.3.1}%
 \contentsline {subsection}{\numberline {3.2}Antal resor}{5}{subsection.3.2}%
-\contentsline {subsection}{\numberline {3.3}Resornas fördelning på färdsätt}{6}{subsection.3.3}%
-\contentsline {subsection}{\numberline {3.4}Bakgrundfrågor}{6}{subsection.3.4}%
-\contentsline {subsubsection}{\numberline {3.4.1}Färdsätt efter kön}{6}{subsubsection.3.4.1}%
-\contentsline {subsubsection}{\numberline {3.4.2}Färdsätt efter ålder}{6}{subsubsection.3.4.2}%
-\contentsline {subsubsection}{\numberline {3.4.3}Färdsätt efter sysselsättning}{8}{subsubsection.3.4.3}%
-\contentsline {subsubsection}{\numberline {3.4.4}Färdsätt efter ärende}{8}{subsubsection.3.4.4}%
-\contentsline {subsection}{\numberline {3.5}Reslängd och trafikarbete}{11}{subsection.3.5}%
-\contentsline {subsubsection}{\numberline {3.5.1}Reserelationer inom Bålsta}{12}{subsubsection.3.5.1}%
-\contentsline {subsubsection}{\numberline {3.5.2}Reserelationer utanför Bålsta}{14}{subsubsection.3.5.2}%
-\contentsline {section}{\numberline {4}Bilagor}{15}{section.4}%
-\contentsline {subsection}{\numberline {4.1}Karta}{15}{subsection.4.1}%
-\contentsline {subsection}{\numberline {4.2}Detaljerade tabeller}{15}{subsection.4.2}%
+\contentsline {subsection}{\numberline {3.3}Resornas fördelning på färdsätt}{5}{subsection.3.3}%
+\contentsline {subsection}{\numberline {3.4}Bakgrundfrågor}{7}{subsection.3.4}%
+\contentsline {subsubsection}{\numberline {3.4.1}Färdsätt efter kön}{7}{subsubsection.3.4.1}%
+\contentsline {subsubsection}{\numberline {3.4.2}Färdsätt efter ålder}{7}{subsubsection.3.4.2}%
+\contentsline {subsubsection}{\numberline {3.4.3}Färdsätt efter sysselsättning}{7}{subsubsection.3.4.3}%
+\contentsline {subsubsection}{\numberline {3.4.4}Färdsätt efter ärende}{9}{subsubsection.3.4.4}%
+\contentsline {subsection}{\numberline {3.5}Reslängd och trafikarbete}{9}{subsection.3.5}%
+\contentsline {subsubsection}{\numberline {3.5.1}Reserelationer inom Bålsta tätort}{12}{subsubsection.3.5.1}%
+\contentsline {subsubsection}{\numberline {3.5.2}Reserelationer utanför Bålsta tätort}{13}{subsubsection.3.5.2}%
+\contentsline {section}{\numberline {4}Bilagor}{14}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Karta}{14}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Detaljerade tabeller}{14}{subsection.4.2}%
