@@ -46,6 +46,7 @@ header-includes:
   - \usepackage{makecell}
   - \usepackage{xcolor}
   - \usepackage[document]{ragged2e}
+  - \floatplacement{figure}{H}
 ---
 
 ```{r indata, echo=FALSE, include = FALSE}
@@ -141,10 +142,10 @@ extremer_låga <- function(table, col) {
   return(table)
 }
 
-#Funktion för att räkna upp områden i en slice
-upprakning<-function(extremer,max_antal_uppräknade){
-  antal_uppräknade <- min(nrow(extremer),max_antal_uppräknade) #som minst räknas alla områden upp
-  text_uppräkning <- paste(extremer$Omrade[1:(antal_uppräknade)], collapse = ', ') #sträng med områden
+#Fuktion för uppräkning av områden
+upprakning<-function(lista,max_antal_uppräknade){
+  antal_uppräknade <- min(nrow(lista),max_antal_uppräknade) #som mest räknas alla områden upp
+  text_uppräkning <- paste(lista$Område[1:(antal_uppräknade)], collapse = ', ') #sträng med områden
   text_uppräkning <- stri_replace_last_fixed(text_uppräkning, ', ', ' och ') #sätter "och" i slutet av uppräkningen
   return(text_uppräkning)
 }
@@ -409,9 +410,7 @@ if (nrow(extremer)>1){ #om det finns extremer
   #slice(which.max(Svarsfrekvens))
   text <- paste(text,"Särskilt hög var andelen svarande i ")
   #Uppräkning av områden
-  antal_uppräknade <- min(nrow(extremer),max_antal_uppräknade) #som minst räknas alla områden upp
-  text_uppräkning <- paste(extremer$Omrade[1:(antal_uppräknade)], collapse = ', ') #sträng med områden
-  text_uppräkning <- stri_replace_last_fixed(text_uppräkning, ', ', ' och ') #sätter "och" i slutet av uppräkningen
+  text_uppräkning <- upprakning(extremer,max_antal_uppräknade)
   text <- paste(text,text_uppräkning,", där andelen svarande var upp emot ",round(extremer$Svarsfrekvens[1])," %. ",sep="")
   } else {
     svarsgrad_max <- slice(svarsgrad,which.max(Svarsfrekvens))
@@ -423,9 +422,7 @@ if (nrow(extremer)>1){ #om det finns extremer
   #slice(which.max(Svarsfrekvens))
   text <- paste(text,"Särskilt hög andel svarande återfinns i ")
   #Uppräkning av områden
-  antal_uppräknade <- min(nrow(extremer),max_antal_uppräknade) #som minst räknas alla områden upp
-  text_uppräkning <- paste(extremer$Omrade[1:(antal_uppräknade)], collapse = ', ') #sträng med områden
-  text_uppräkning <- stri_replace_last_fixed(text_uppräkning, ', ', ' och ') #sätter "och" i slutet av uppräkningen
+  text_uppräkning <- upprakning(extremer,max_antal_uppräknade)
   text <- paste(text,text_uppräkning,", där andelen svarande var upp emot ",round(extremer$Svarsfrekvens[1])," %. ",sep="")
   } else {
     svarsgrad_min <- slice(svarsgrad,which.min(Svarsfrekvens))
@@ -480,18 +477,19 @@ Avgörande för färdmedelsvalet är körkortsinnehav och biltillgång.
 
 ```{r korkort, echo=FALSE, include=FALSE}
 korkort_bil <- pers %>%
-  filter(!(is.na(h4) & !(is.na(h5)))) %>% #Körkort och bilinnehav bör göras som två separata... Detta är åtgärdat i den förlorade koden...
+  # filter(!(is.na(h4) & !(is.na(h5)))) %>% #Körkort och bilinnehav bör göras som två separata... Detta är åtgärdat i den förlorade koden...
   mutate(Omrade = ifelse(is.na(Omrade), "Ej angivet", Omrade)) %>%
   select(Omrade, h4, h5) %>%
   group_by(Omrade) %>%
   summarize(korkort_bil = sum(na.omit(h4) == 1),
             Biltillgång = sum(h5 == 1) + sum(h5 == 2) + sum(h5 == 3) + sum(h5 == 4),
-            Antal_individer = n()) %>%
+            Antal_individer_korkort_svar = sum(!is.na(h4)),
+            Antal_individer_bil_svar = sum(!is.na(h5))) %>%
   bind_rows(summarize(.,
                       across(where(is.numeric), sum),
                       across(where(is.character), ~ "Totalt"))) %>%
-  mutate("Körkort (%)" = korkort_bil/Antal_individer*100,
-         "Biltillgång (%)" = Biltillgång/Antal_individer*100) %>%
+  mutate("Körkort (%)" = korkort_bil/Antal_individer_korkort_svar*100,
+         "Biltillgång (%)" = Biltillgång/Antal_individer_bil_svar*100) %>%
   select(Omrade, "Körkort (%)", "Biltillgång (%)")
 
 korkort_bil <- korkort_bil
@@ -512,36 +510,40 @@ text <- ""
 max_antal_uppräknade <- 3 #hur många områden som maximalt ska lyftas fram
 
 #Indata
-lista <- korkort_bil %>%
+tabell <- korkort_bil %>%
   rename(col="Körkort (%)") #Den kolumn som extremer ska tas ifrån
-extremer <- extremer_höga(lista,"Körkort (%)") #Extremer som ska behandlas
-
+extremer <- extremer_höga(tabell,col) #Extremer som ska behandlas
 #Skapar text
 if (nrow(extremer)>1){ #om det finns extremer
+                                  
   text <- paste(text,"Särskilt högt var körkortsinnehavet bland människor i ")
   #Uppräkning av områden
   text_uppräkning <- upprakning(extremer,max_antal_uppräknade)
+                                                                                                           
+                                                                                                                       
   text <- paste(text,text_uppräkning,", där andelen var upp emot ",round(extremer$col[1])," %. ",sep="")
   } else {
-    max <- slice(lista,which.max(col))
-    text <- paste(text,"Högst körkortsinnehav återfanns i ",max$Omrade,", med ",round(max$col)," %. ",sep="")
-  }
+    max <- slice(tabell,which.max(col))
+    text <- paste(text,"Högst körkortsinnehav återfanns i ",max$Område,", med ",round(max$col)," %. ",sep="")
+}
 
-extremer <- extremer_låga(lista,col)
+extremer <- extremer_låga(tabell,col) #Extremer som ska behandlas
 if (nrow(extremer)>1){ #om det finns extremer
+                                  
   text <- paste(text,"Särskilt låg andel körkortsinnehavare återfanns i ")
   #Uppräkning av områden
   text_uppräkning <- upprakning(extremer,max_antal_uppräknade)
+                                                                                                           
+                                                                                                                       
   text <- paste(text,text_uppräkning,", där andelen var ner emot ",round(extremer$col[1])," %. ",sep="")
   } else {
-    min <- slice(lista,which.min(col))
-    text <- paste(text,"Lägst var andelen med körkort i ",min$Omrade,", där andelen var nära ",round(min$col)," %. ",sep="")
-    }
+    min <- slice(tabell,which.min(col))
+    text <- paste(text,"Lägst var andelen med körkort i ",min$Område,", där andelen var nära ",round(min$col)," %. ",sep="")
+  }
 
 ```
 
 I `r (rapportomrade_text)` hade `r round(körkort_totalt)` procent av respondenterna körkort och `r round(biltillgång_totalt)` procent tillgång till bil. `r (text)`De som hade tillgång till bil varierade mellan  `r round(min(korkort_bil$"Biltillgång (%)"))` och `r round(max(korkort_bil$"Biltillgång (%)"))` procent. I Tabell \@ref(tab:korkort-bil-table) framgår körkortsinnehav och biltillgång för respektive område.
-<OBS siffrorna i tabellen nedan är fel. Det finns en fungerande version som ska återskapas>
 
 ```{r korkort-bil-table, echo = FALSE, results = "asis"}
 kbl(korkort_bil, caption = "Antal respondenter med körkort och biltillgång", booktabs = T, linesep = "",digits=0,format.args = list( big.mark = " ")) %>%
@@ -743,9 +745,7 @@ text <- paste(tolower(mest_frekvent_färdmedel)," är det vanligaste färdmedlet
 if (nrow(avvikande_vanligaste_färdmedel) > 0) {
   text <- paste(text,"I zon ",sep="")
   #Uppräkning av områden
-  antal_uppräknade <- nrow(avvikande_vanligaste_färdmedel) #som minst räknas alla områden upp
-  text_uppräkning <- paste(avvikande_vanligaste_färdmedel$Omrade[1:(antal_uppräknade)], collapse = ', ') #sträng med områden
-  text_uppräkning <- stri_replace_last_fixed(text_uppräkning, ', ', ' och ') #sätter "och" i slutet av uppräkningen
+  text_uppräkning <- upprakning(avvikande_vanligaste_färdmedel,max_antal_uppräknade)
   text <- paste(text,text_uppräkning," var dock ",avvikande_vanligaste_färdmedel$max[1]," det vanligaste färdmedlet. ",sep="")
 } else{
   text <- paste(text," Detta är också det vanligaste färdmedlet i varje enskilt område. ")
@@ -757,9 +757,7 @@ tabell <- select(trip_mode,!Befolkning)
 if (nrow(extremer)>1){ #om det finns extremer
   text <- paste(text,"Särskilt högt var antalet ",mest_frekvent_färdmedel,"resor bland människor i ")
   #Uppräkning av områden
-  antal_uppräknade <- min(nrow(extremer),max_antal_uppräknade) #som minst räknas alla områden upp
-  text_uppräkning <- paste(extremer$Omrade[1:(antal_uppräknade)], collapse = ', ') #sträng med områden
-  text_uppräkning <- stri_replace_last_fixed(text_uppräkning, ', ', ' och ') #sätter "och" i slutet av uppräkningen
+  text_uppräkning <- upprakning(extremer,max_antal_uppräknade)
   text <- paste(text,text_uppräkning,", där andelen var upp emot ",round(extremer$Bil[1]*100)," %. ",sep="")
   } else {
     tabell_max <- slice(tabell,which.max(Bil))
@@ -770,9 +768,7 @@ extremer <- trip_person_mode_extremer_låga
 if (nrow(extremer)>1){ #om det finns extremer
   text <- paste(text,"Särskilt låg andel ",mest_frekvent_färdmedel,"resor återfanns i ")
   #Uppräkning av områden
-  antal_uppräknade <- min(nrow(extremer),max_antal_uppräknade) #som minst räknas alla områden upp
-  text_uppräkning <- paste(extremer$Omrade[1:(antal_uppräknade)], collapse = ', ') #sträng med områden
-  text_uppräkning <- stri_replace_last_fixed(text_uppräkning, ', ', ' och ') #sätter "och" i slutet av uppräkningen
+  text_uppräkning <- upprakning(extremer,max_antal_uppräknade)
   text <- paste(text,text_uppräkning,", där andelen var ner emot ",round(extremer$Bil[1]*100)," %. ",sep="")
   } else {
     tabell_min <- slice(tabell,which.min(Bil))
@@ -893,12 +889,12 @@ trip_age <- rvu %>%
   #Räknar ut radsummor
   ungroup() %>%
   mutate(alder = c(
-    "Mellan 15 och 18",
-    "Mellan 18 och 24",
-    "Mellan 25 och 39",
-    "Mellan 40 och 64",
-    "Mellan 65 och 74",
-    "Mellan 75 och 85"
+    "15-18 år",
+    "18-24 år",
+    "25-39 år",
+    "40-64 år",
+    "65-74 år",
+    "75-85 år"
     )) %>%
   rename('Ålder' = alder) %>%
     bind_rows(summarize(.,
