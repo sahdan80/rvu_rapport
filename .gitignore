@@ -7,4 +7,5 @@
 *.p
 *.pdf
 *.RData
+*.RHistory
 .Rproj.user

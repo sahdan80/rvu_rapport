@@ -57,7 +57,6 @@ rapportomrade_text <- "Bålsta" #namn på området som skrivs i löptexten
 rapportomrade_rubrik <- "Bålsta tätort" #namn på området som skrivs i rubriker
 rapportniva <- "tatort" #'kommun' #'lan' #vilken geografisk avgränsning rapporten har
 omradesniva <- "deso" #'kommun' #'tatort' #vilken områdesnivån som resultaten ska redovisas på. Om rapportområdet är en region, bör kommun väljas och om det är en tätort bör deso väljas osv...
-ordning_fardmedel <- c("Bil", "Tåg", "Buss", "Cykel", "Gång", "Annat")
 #Denna bör skapas automatiskt baserat på populäraste färdmedlet i rvu
 palett <- c("#5144d3","#53a17f","#3599d5","#e6ad00","#d57667","#9e1863")
 ```
@@ -167,17 +166,23 @@ avst <- read_delim("restid_håbo2021.csv", ";", escape_double = FALSE,
   select(respondentid, resa_nr, distance_straight_line, distance_google)
 
 #Bestämmer vilken bostadsinfo som ska användas beroende på rapportnivå...
-pers <- mutate(pers,bostad_deso_kod = bostad_deso) #Flag: Den här ska tas bort när Björn uppdaterat indatatabellerna.
+rvu <- mutate(rvu,start_deso_namn = start_deso) #Flag: Den här ska tas bort när Björn uppdaterat indatatabellerna.
+rvu <- mutate(rvu,stop_deso_namn = stop_deso) #Flag: Den här ska tas bort när Björn uppdaterat indatatabellerna.
 
 pers <- mutate(pers,Omrade = .data[[paste("bostad_",omradesniva,"_namn",sep="")]])
 pers <- mutate(pers,Omrade_kod = .data[[paste("bostad_",omradesniva,"_kod",sep="")]])
+rvu <- mutate(rvu,start_omrade_namn = .data[[paste("start_",omradesniva,"_namn",sep="")]])
+rvu <- mutate(rvu,stop_omrade_namn = .data[[paste("stop_",omradesniva,"_namn",sep="")]])
 
 pers <- mutate(pers,Rapportomrade = .data[[paste("bostad_",rapportniva,"_namn",sep="")]])
 #pers <- mutate(pers,Rapportomrade_kod = .data[[paste("bostad_",rapportniva,"_kod",sep="")]])
+rvu <- mutate(rvu,start_rapportomrade_namn = .data[[paste("start_",rapportniva,"_namn",sep="")]])
+rvu <- mutate(rvu,stop_rapportomrade_namn = .data[[paste("stop_",rapportniva,"_namn",sep="")]])
+
 
 #Filter för att begränsa till Håbo kommun, detta ska inte behövas när de riktiga data kommer
 pers <- pers %>%
-  filter(Rapportomrade %in% rapportomrade) #Flag: Hårdkodat.. Ska ändras om vi gör en regionrapport...
+  filter(Rapportomrade %in% rapportomrade)
 rvu <- rvu %>%
   filter(respondentid %in% pers$respondentid)
 avst <- avst %>%
@@ -189,6 +194,9 @@ rvu <- rvu %>%
   mutate(avstand = distance_google) %>%
   mutate(fardmedel.kat = ifelse(fardmedel.kat == "Kollektiv_buss","Buss",fardmedel.kat)) %>%
   mutate(fardmedel.kat = ifelse(fardmedel.kat == "Kollektiv_tåg","Tåg",fardmedel.kat))
+```
+
+```{r api, echo=FALSE, include = FALSE}
 
 #ett viktad medelvärde för året då RVU genomfördes för att få rätt befolkningsdata från SCB API
 rvu_yr <- pers %>% group_by(ar) %>% summarise(resp_in_year = n()) %>% 
@@ -240,6 +248,9 @@ respondent2omrade <- pers %>%
 rvu <- rvu %>%
   left_join(select(respondent2omrade, c(respondentid,Omrade,Omrade_kod)), by = c("respondentid" = "respondentid"))
 
+```
+```{r fraga-svar-nyckel, echo=FALSE, include = FALSE}
+
 #Lookup-table för att hämta klartext
 variable_data <- read_excel("Variable information + Variable Values 2021-05-28.xlsx",
                             sheet = "Variable Labels", skip = 1, col_names = TRUE)
@@ -275,66 +286,118 @@ Antalet resor i `r (rapportomrade_text)` uppgick i X resor per dygn...
 Färdmedelsfördelningen visar att X är det vanligaste färdmedlet.
 <Osäkert hur det ska visualiseras, diagram?>
 
+
+```{r fardmedelsfordelning-bearbetning, echo = FALSE, results = "asis", fig.cap = "Resornas färdmedelsfördelning per område."}
+#Följande används i diagrammen nedan, samt till fardmedelsfordelning-km-diagram i resultat-delen
+
+#Filtrerar data
+reslangd <- rvu %>%
+  filter(!is.na(avstand)) %>%
+  rename(Färdmedel = fardmedel.kat) %>%
+  select(respondentid,Färdmedel,avstand,Omrade,Omrade_kod)
+
+#Räknar ut hur många individer som gör resor per område
+antal_resande_individer <- rvu %>%
+  group_by(Omrade) %>%
+  summarise("Antal_resande_individer" = n_distinct(respondentid))
+
+#Räknar ut hur många individer som inte gör någon resa
+individer_utan_resa <- pers %>% #OBS i dagsläget saknar alla individer utan resa också område...
+  group_by(Omrade) %>%
+  summarise("Antal_individer" = n_distinct(respondentid)) %>%
+  left_join(antal_resande_individer, by = c("Omrade" = "Omrade")) %>%
+  mutate(Individer_utan_resa = Antal_individer-Antal_resande_individer) %>%
+  select(Omrade,Individer_utan_resa) 
+
+#Räknar ut hur många individer det finns per område
+individer_per_område <- reslangd %>%
+  group_by(Omrade) %>%
+  summarise("Antal_individer" = n_distinct(respondentid)) %>%
+  left_join(individer_utan_resa, by = c("Omrade" = "Omrade")) %>%
+  mutate(Antal_individer = Antal_individer+Individer_utan_resa) %>%
+  select(Omrade,Antal_individer) 
+
+#Antal resor per individ (och område, färdmedel) räknas ut
+resor_per_individ <- reslangd %>% #Resor per individ blir överskattat pga fel med att individer utan resa saknar bostadsort
+  group_by(Omrade,Omrade_kod,Färdmedel) %>%
+  summarise("Antal_observationer" = n(), .groups = 'drop') %>%
+  left_join(individer_per_område, by = c("Omrade" = "Omrade")) %>%
+  mutate(Resor_per_individ = Antal_observationer/Antal_individer) %>%
+  left_join(select(scb_befolkning, c(Omrade_kod,Befolkning)), by = c("Omrade_kod" = "Omrade_kod")) %>%
+  mutate(Totalt_antal_resor = Befolkning*Resor_per_individ) %>%
+  ungroup() %>%
+  select(Omrade,Färdmedel,Totalt_antal_resor)
+
+#Antal resor per individ (färdmedel) räknas ut
+resor_per_individ_summa <- resor_per_individ %>%
+  group_by(Färdmedel) %>%
+  summarise("Totalt_antal_resor" = round(sum(Totalt_antal_resor,na.rm = TRUE),0)) %>%
+  arrange(desc(Totalt_antal_resor))
+
+#Här definieras den globala parametern som bestämmer ordning på färdmedel i alla diagram
+ordning_fardmedel <- resor_per_individ_summa$Färdmedel
+ordning_fardmedel <- append(ordning_fardmedel,"Annat") #Lägg till Annat på slutet
+if (match("Tåg",ordning_fardmedel)<match("Buss",ordning_fardmedel)) { #Om tåg före buss
+  ordning_fardmedel <- ordning_fardmedel[ordning_fardmedel != "Buss"] #Ta bort Buss
+  ordning_fardmedel <- append(ordning_fardmedel,"Buss",match("Tåg",ordning_fardmedel)) #Lägg till buss efter tåg
+} else {
+  ordning_fardmedel <- ordning_fardmedel[ordning_fardmedel != "Tåg"] #Ta bort Tåg
+  ordning_fardmedel <- append(ordning_fardmedel,"Tåg",match("Buss",ordning_fardmedel)) #Lägg till tåg efter buss
+}
+
+#Räknar ut totalt per färdmedel
+reslangd_summa <- reslangd %>%
+  group_by(Färdmedel) %>%
+  summarise("Median" = round(median(avstand),0), "Medel" = round(mean(avstand),1), "Antal_observationer" = n()) %>%
+  mutate(Omrade = c("Alla")) %>%
+  left_join(resor_per_individ_summa, by = c("Färdmedel" = "Färdmedel")) %>%
+  mutate(Trafikarbete_totalt = Totalt_antal_resor*Medel) %>%
+  arrange(desc(Totalt_antal_resor))
+```
+
+
 ```{r fardmedelsfordelning-diagram, echo = FALSE, results = "asis", fig.cap = "Resornas färdmedelsfördelning per område."}
-# Stacked bar plot, fast bara med en för hela området...
-# fardmedelsandelar <- rvu %>%
-#   select(fardmedel.kat) %>%
-#   filter(!is.na(fardmedel.kat)) %>%
-#   group_by(fardmedel.kat) %>%
-#   summarize(antal = n()) %>%
-#   spread(fardmedel.kat, antal, fill=0) %>%
-#   mutate(Totalt = rowSums(across(where(is.numeric)))) %>%
-#   #Räknar ut radsummor
-#   ungroup() %>%
-#   mutate(across(where(is.numeric), ~ . / Totalt)) %>% #dividerar till procent av respondenter
-#   select(ordning_fardmedel)
-# 
-# 
-# #Percent stacked barchart
-# fardmedelsandelar_plot<-fardmedelsandelar %>%
-#   mutate(across(where(is.numeric), ~ . * 100))  %>%
-#   gather(fard,andel,Bil:Annat,factor_key=TRUE) %>% #Flag: Bil_Annat borde inte vara hårdkodat...
-#   mutate(andel=round(andel)) %>%
-#   mutate(Omrade = "Totalt")
-# 
-# omrade_plot <- ggplot(data = fardmedelsandelar_plot, aes(fill =forcats::fct_rev(factor(fard)), x = andel, y = forcats::fct_rev(factor(Omrade)),label =andel)) + 
-#   theme(panel.background = element_blank(),legend.position="bottom") +
-#   geom_bar(position = "fill", stat = "identity")+
-#   geom_text(aes(label=ifelse(andel>3,andel," ")),size = 3, position = position_fill(vjust = 0.5)) + #etiketter
-#   scale_fill_manual(values=palett) + #färger
-#   labs(x="Andel",y="Omrade",fill="Färdmedel") +
-#   scale_x_continuous(labels = scales::percent)
-# omrade_plot
-
-#Till histogram
-test <- rvu %>%
-  select(fardmedel.kat) %>%
-  filter(!is.na(fardmedel.kat)) %>%
-  group_by(fardmedel.kat) %>%
-  summarize(antal = n())
-
 #Histogram med resandefrekvens
-purp_barplot <- ggplot(test, aes(fardmedel.kat, antal, fill = fardmedel.kat)) +
+resor_barplot <- ggplot(resor_per_individ_summa, aes(factor(Färdmedel, level = ordning_fardmedel), Totalt_antal_resor, fill = factor(Färdmedel, level = ordning_fardmedel))) +
     geom_bar(stat = "identity") +
     rvu_theme() +
-    coord_cartesian(xlim = c(1,nrow(test))) +
+    coord_cartesian(xlim = c(1,nrow(resor_per_individ_summa))) +
     scale_fill_manual(values=palett) +
-    geom_text(aes(label=antal),size = 3, position=position_dodge(width=0.9), vjust=-0.25) + #etiketter
+    geom_text(aes(label=round(Totalt_antal_resor/100)*100),size = 3, position=position_dodge(width=0.9), vjust=-0.25) + #etiketter
+    # scale_fill_discrete(breaks=ordning_fardmedel) +
     labs(
-        x = "Ärende",
-        y = "Antal svar",
-        title = "Antal resor per ärende"
+        x = "Färdmedel",
+        y = "Antal resor",
+        title = "Antal resor per färdmedel"
     )
 
 
-purp_barplot
+resor_barplot
 ```
-Text
 
-## Trafikarbete
 
-<Visa Totalen i slutet av tabellen i avsnitt 3.5?>
+```{r fardmedelsfordelning-km-diagram, echo = FALSE, results = "asis", fig.cap = "Resornas färdmedelsfördelning per område."}
+#Tabell till diagram
+reslangd_per_fardmedel <- reslangd_summa %>%
+  ungroup() %>%
+  select(Färdmedel,Trafikarbete_totalt)
 
+#Stapeldiagram med reslängd
+reslangd_barplot <- ggplot(reslangd_per_fardmedel, aes(factor(Färdmedel, level = ordning_fardmedel), Trafikarbete_totalt, fill = factor(Färdmedel, level = ordning_fardmedel))) +
+    geom_bar(stat = "identity") +
+    rvu_theme() +
+    coord_cartesian(xlim = c(1,nrow(reslangd_per_fardmedel))) +
+    scale_fill_manual(values=palett) +
+    geom_text(aes(label=round(Trafikarbete_totalt/1000/1000)*1000),size = 3, position=position_dodge(width=0.9), vjust=-0.25) + #etiketter
+    labs(
+        x = "Färdmedel",
+        y = "Total reslängd (km)",
+        title = "Reslängd per färdmedel"
+    )
+
+
+reslangd_barplot
+```
 ## Fördelning mellan män och kvinnor
 
 <Exempeltext>
@@ -356,11 +419,15 @@ Följande resvanerapport har tagits fram för att öka kunskapen om dagens resm�
 
 ## Metod
 
-Rapporten är baserad på data från Kollektivtrafikbarometern som är en branschgemensam kvalitets- och resvaneundersökning som drivs och utvecklas av Svensk Kollektivtrafik. Kollektivtrafikbarometern är en nationell undersökning som riktar sig till den svenska allmänheten mellan 15 och 85 år, både de som använder kollektivtrafiken och de som inte gör det. Ett slumpmässigt och representativt individurval ur ett befolkningsregister utifrån postnummerområden ligger till grunden.
+Rapporten är baserad på data från Svensk Kollektivtrafiks Kollektivtrafikbarometern (https://www.svenskkollektivtrafik.se/verktyg-och-system/kollektivtrafikbarometern/). Kollektivtrafikbarometern är en branschgemensam nationell kvalitets- och resvaneundersökning som riktar sig till den svenska allmänheten mellan 15 och 85 år, både de som använder kollektivtrafiken och de som inte gör det. Till grunden av datainsamlingen ligger ett slumpmässigt och representativt individurval ur ett befolkningsregister utifrån postnummerområden. 
+Till skillnad från de flesta resvaneundersökningar utförs Kollektivtrafikbarometer kontinuerligt med dataleveranser varje månad. Fördelen med en kontinuerlig insamling är att säsongsvariationer utjämnas och enskilda händelser (tex mycket regn under insamlingsperioden) påverkar resultatet inte särskilt. Det är också möjligt i princip, dock inte med rapportverktyget, att följa trender över tid och analysera skillnader i resandet under olika årstider.
 
-I regel deltar majoriteten av landets 23 regioner i Kollektivtrafiksbarometern. Antalet insamlade enkätsvar per region varierar normalt mellan cirka 1 000 och 10 000.
+Datainsamlingen sker via en inbjudan som skickas via post till personer som ingår i urvalet. Bortfall, dvs personer med inbjudan som inte svarar, är ett viktigt kvalitetskriterium och ligger i nationellt snitt vid XX% och är därmed jämförbart med andra resvaneundersökningar. Kollektivtrafikbarometer använder sig dock av en speciell metod där en person som väljer att inte svara på enkäten ersätts genom utskick av inbjudan till en annan slumpmässigt vald person. Metoden säkerställer att beställaren får den beställda mängden besvarade enkäter. Jämförelse av fördelningen av kön och ålder bland personer som bevarar enkäten och befolkningen används för att bedöma om urvalet är representativt för befolkningen. 
+Inbjudan som skickas till valda personer innehåller en länk till en webbportal där personen får svara på frågor. Varje svarsperson får registrera upp till fem resor som gjordes dagen innan. För varje resa besvaras ett antal frågor som tex resans ärende, färdmedel och var resan började och avslutade. Resans start och stop registreras av svarspersonen i en online karta genom att klicka på en plats i kartan. Respektive koordinater extraheras och bifogas till datatabellen.
+Hanteringen Kollektivtrafikbarometer rådata är automatiserat med hjälp av ett skript som är skrivet i programmeringsspråket R (https://github.com/bjornsh/kollektivtrafikbarometer). I datahanteringen ingår kategorisering av resekoordinater, tex inom eller utanför en tätort, anonymisering som rensar bort personuppgifter ifall data ska delas utanför organisationen, och beräkning av reslängder med hjälp av Google directions API (https://developers.google.com/maps/documentation/directions/overview).
 
-Skriptet som har använts för att ta fram denna rapport är skrivet i programmeringsspråket R. Skriptet läser av automatiskt förbearbetad rådata från enkätundersökningen, kompletterad med beräknade reslängder från Google Maps API.
+Produktion av RVU rapporten är automatiserat genom ett skriptet som är skrivet i programmeringsspråket R. Skriptet möjliggör rapporter på region, kommun och tätort nivå genom filtrering av data. Vilken typ av rapport det handlar om måste definieras i början av skriptet – enda steg som behöver manuell handpåläggning.
+För Kollektivtrafikbarometer enkäten och andra bakgrundsdokument se länker på https://github.com/bjornsh/kollektivtrafikbarometer 
 
 ```{r respondant_details, echo=FALSE, include = FALSE}
 respondenter <- pers %>%
@@ -652,11 +719,7 @@ if (avvikelse<0.1) {
 En genomsnittlig dag genomfördes `r round(num_trips_all$"Antal resor",0)` resor i `r (rapportomrade_text)` av personer 15–85 år bosatta inom det undersökta utredningsområdet. I Tabell \@ref(tab:num-trips-table) framgår andel personer som rest och deras antal resor per dag redovisat per kön och ålderskategori.
 
 ```{r num-trips-table, echo = FALSE, results = "asis"}
-# kbl(num_trips_gender, digits = 2, caption = "Antal resor per dag per kön", booktabs = T, linesep = "") %>%
-#   kable_styling(latex_options = c("striped", "HOLD_position")) %>%
-#   row_spec(0, bold = T, angle = 45) #gör rubrikraden fetstilt and titles angled for space
- 
-x <- kbl(num_trips_rep, digits = 1, longtable = T, booktabs = T, linesep = "",caption = "Antal resor per dag per kön",format.args = list( big.mark = " ")) %>%
+x <- kbl(num_trips_rep, digits = 1, longtable = T, booktabs = T, linesep = "",caption = "Antal resor per dag per resenärsgrupp",format.args = list( big.mark = " ")) %>%
   #Captions appear to create problems with longtable package, gives error "mispaced align"
   #See here for solution, but don't know how to implement:
   #https://tex.stackexchange.com/a/205468
@@ -965,26 +1028,6 @@ svarsnyckel <- labels_data %>%
   filter(question_id=="H2") %>%
   select(answer_id,answer)
 
-# #Läser in fråga H2 om färdsätt och aggregerar
-# rvu_sys <- rvu %>%
-#     left_join(select(pers, c("respondentid","h2")), by = c("respondentid" = "respondentid")) %>% #Hämtar kolumn h2 från pers-data
-#     select(resa_nr, respondentid, h2) %>%
-#     left_join(svarsnyckel, by = c("h2" = "answer_id")) %>%
-#     group_by(answer) %>%
-#     summarise(antal = n())
-#     
-# top_sys <- rvu_sys %>% filter(!is.na(answer)) %>% arrange(desc(antal)) %>% filter(row_number()==1)
-# top_sys_2 <- rvu_sys %>% filter(!is.na(answer)) %>% arrange(desc(antal)) %>% filter(row_number()==2)
-# 
-# top_sys <- top_sys$answer
-# top_sys_2 <- top_sys_2$answer
-# 
-# rvu_sys_rep <- rvu_sys %>%
-#     rename(
-#         'Sysselsättning' = answer,
-#         'Antal svar' = antal
-#     )
-
 ```
 
 ```{r trip_sys_mode, echo=FALSE, include = FALSE}
@@ -1139,51 +1182,6 @@ purpose_plot
 
 ## Reslängd och trafikarbete
 ```{r travel_dist, echo=FALSE, include = FALSE}
-
-#Filtrerar data
-reslangd <- rvu %>%
-  filter(!is.na(avstand)) %>%
-  rename(Färdmedel = fardmedel.kat) %>%
-  select(respondentid,Färdmedel,avstand,Omrade,Omrade_kod)
-  
-
-#Räknar ut hur många individer som gör resor per område
-antal_resande_individer <- rvu %>%
-  group_by(Omrade) %>%
-  summarise("Antal_resande_individer" = n_distinct(respondentid))
-
-#Räknar ut hur många individer som inte gör någon resa
-individer_utan_resa <- pers %>% #OBS i dagsläget saknar alla individer utan resa också område...
-  group_by(Omrade) %>%
-  summarise("Antal_individer" = n_distinct(respondentid)) %>%
-  left_join(antal_resande_individer, by = c("Omrade" = "Omrade")) %>%
-  mutate(Individer_utan_resa = Antal_individer-Antal_resande_individer) %>%
-  select(Omrade,Individer_utan_resa) 
-
-#Räknar ut hur många individer det finns per område
-individer_per_område <- reslangd %>%
-  group_by(Omrade) %>%
-  summarise("Antal_individer" = n_distinct(respondentid)) %>%
-  left_join(individer_utan_resa, by = c("Omrade" = "Omrade")) %>%
-  mutate(Antal_individer = Antal_individer+Individer_utan_resa) %>%
-  select(Omrade,Antal_individer) 
-
-#Antal resor per individ (och område, färdmedel) räknas ut
-resor_per_individ <- reslangd %>% #Resor per individ blir överskattat pga fel med att individer utan resa saknar bostadsort
-  group_by(Omrade,Omrade_kod,Färdmedel) %>%
-  summarise("Antal_observationer" = n()) %>%
-  left_join(individer_per_område, by = c("Omrade" = "Omrade")) %>%
-  mutate(Resor_per_individ = Antal_observationer/Antal_individer) %>%
-  left_join(select(scb_befolkning, c(Omrade_kod,Befolkning)), by = c("Omrade_kod" = "Omrade_kod")) %>%
-  mutate(Totalt_antal_resor = Befolkning*Resor_per_individ) %>%
-  ungroup() %>%
-  select(Omrade,Färdmedel,Totalt_antal_resor)
-
-#Antal resor per individ (färdmedel) räknas ut
-resor_per_individ_summa <- resor_per_individ %>%
-  group_by(Färdmedel) %>%
-  summarise("Totalt_antal_resor" = round(sum(Totalt_antal_resor,na.rm = TRUE),0))
-
 #Räknar ut totalt
 reslangd_summa_tot <- reslangd %>%
   summarise("Median" = round(median(avstand),0), "Medel" = round(mean(avstand),1), "Antal_observationer" = n()) %>%
@@ -1191,15 +1189,6 @@ reslangd_summa_tot <- reslangd %>%
   cbind(Omrade = "Alla") %>%
   mutate(Totalt_antal_resor = sum(resor_per_individ$Totalt_antal_resor,na.rm = TRUE)) %>%
   mutate(Trafikarbete_totalt = Totalt_antal_resor*Medel)
-
-#Räknar ut totalt per färdmedel
-reslangd_summa <- reslangd %>%
-  group_by(Färdmedel) %>%
-  summarise("Median" = round(median(avstand),0), "Medel" = round(mean(avstand),1), "Antal_observationer" = n()) %>%
-  mutate(Omrade = c("Alla")) %>%
-  left_join(resor_per_individ_summa, by = c("Färdmedel" = "Färdmedel")) %>%
-  mutate(Trafikarbete_totalt = Totalt_antal_resor*Medel) %>%
-  rbind(reslangd_summa_tot)
 
 #Räknar ut totalt per färdmedel och område
 reslangd_per_område <- reslangd %>%
@@ -1236,6 +1225,7 @@ reslangd_per_omrade_rep <- crossing(unique(reslangd$Omrade), unique(reslangd$Fä
          Färdmedel = "unique(reslangd$Färdmedel)") %>%
   left_join(reslangd_per_område, by = c("Omrade", "Färdmedel")) %>%
   rbind(reslangd_summa) %>%
+  rbind(reslangd_summa_tot) %>%
   mutate(
     Omrade = ifelse(is.na(Omrade), "Ej angivet", Omrade),
     Färdmedel = Färdmedel,
@@ -1253,7 +1243,7 @@ reslangd_per_omrade_rep <- reslangd_per_omrade_rep %>%
   select(-Omrade)
 ```
 
-I resdagboken har intervjupersonerna fått fylla i plats för resmål, som sparats i staitisiken i form av koordinater. Dessa koordinater har använts för att uppskatta avstånd för varje resa med respektive färdmedel. Det partiella bortfallet på grund av avsaknade koordinater är X procent. I flera grupper är underlaget färre `r tolower(tillräckligt_underlag)` respondenter. För dessa har resultat utelämnats. Se Tabell...
+I resdagboken har intervjupersonerna fått fylla i plats för resmål, som sparats i staitisiken i form av koordinater. Dessa koordinater har använts för att uppskatta avstånd för varje resa med respektive färdmedel. Det partiella bortfallet på grund av avsaknade koordinater är X procent. Dessutom redovisas här inte resor som saknar specifikation om färdmedel. I flera grupper är underlaget färre `r tolower(tillräckligt_underlag)` respondenter. För dessa har resultat utelämnats. Se Tabell... 
 
 ```{r travel_dist-table1, echo = FALSE, results = "asis"}
 
@@ -1368,13 +1358,13 @@ minsta_antal <- 10
 
 #Skapar od-matris för alla resor
 od_matrix <- rvu %>%
-    filter(start_tatort_namn %in% rapportomrade & stop_tatort_namn %in% rapportomrade) %>%
-    select(start_deso, stop_deso) %>%
-    filter(!is.na(start_deso)) %>%
-    filter(!is.na(stop_deso)) %>%
-    group_by(start_deso, stop_deso) %>%
+    filter(start_rapportomrade_namn %in% rapportomrade & stop_rapportomrade_namn %in% rapportomrade) %>%
+    select(start_omrade_namn, stop_omrade_namn) %>%
+    filter(!is.na(start_omrade_namn)) %>%
+    filter(!is.na(stop_omrade_namn)) %>%
+    group_by(start_omrade_namn, stop_omrade_namn) %>%
     summarize(antal = n()) %>%
-    pivot_wider(names_from = stop_deso, values_from = antal, values_fill = 0) %>%
+    pivot_wider(names_from = stop_omrade_namn, values_from = antal, values_fill = 0) %>%
     ungroup()
 
 minsta_antal <- min(minsta_antal,nrow(od_matrix))
@@ -1389,19 +1379,19 @@ od_matrix <- od_matrix %>%
   top_n(minsta_antal) %>%
     bind_rows(
       od_matrix %>%
-        filter(!(start_deso %in% top_n(od_matrix,minsta_antal)$start_deso)) %>%
+        filter(!(start_omrade_namn %in% top_n(od_matrix,minsta_antal)$start_omrade_namn)) %>%
         summarise_if(is.numeric, sum) %>%
-        mutate(start_deso = "Övriga områden")
+        mutate(start_omrade_namn = "Övriga områden")
     ) %>%
   bind_rows(summarize(.,
                       across(where(is.numeric), sum),
                       across(where(is.character), ~ "Totalt")))
 
 #Filtrerar bort kolumner
-lista_med_omraden <- pull(od_matrix,start_deso)
+lista_med_omraden <- pull(od_matrix,start_omrade_namn)
 od_matrix <- od_matrix %>%
-  select(start_deso,lista_med_omraden[1:minsta_antal],Totalt) %>%
-  rename("Från område" = start_deso) %>%
+  select(start_omrade_namn,lista_med_omraden[1:minsta_antal],Totalt) %>%
+  rename("Från område" = start_omrade_namn) %>%
   mutate("Övriga områden" = -rowSums(select_if(., is.numeric), na.rm = TRUE)+2*Totalt) %>%
   relocate(Totalt, .after = "Övriga områden")
 
@@ -1433,79 +1423,56 @@ kable(od_matrix_perc, caption = "Fördelning av resorna inom tätorten.", bookta
   row_spec(0, bold = T, angle = 45) %>% #gör rubrikraden fetstilt)
   column_spec(1, bold = T, width = "2cm")
 ```
-### Reserelationer utanför `r (rapportomrade_rubrik)`
+### Utpendling från `r (rapportomrade_rubrik)`
 
-<Exempeltext>
-För resor utanför området sker dessa...
-<Behöver generaliseras för att visa kommunnivå om kommun-rapport och regionnivå om regionrapport>
 
 ```{r od_matrix_extern, echo=FALSE, include = FALSE}
 
 minsta_antal <- 10
 
 #Skapar od-matris för alla resor
-od_matrix <- rvu %>%
-    select(start_tatort_namn, stop_tatort_namn) %>%
-    filter(!is.na(start_tatort_namn)) %>%
-    filter(!is.na(stop_tatort_namn)) %>%
-    filter(!(start_tatort_namn %in% rapportomrade & stop_tatort_namn %in% rapportomrade)) %>%
-    group_by(start_tatort_namn, stop_tatort_namn) %>%
+utpendling <- rvu %>%
+    select(start_rapportomrade_namn, stop_rapportomrade_namn) %>%
+    filter(!is.na(start_rapportomrade_namn)) %>%
+    filter(!is.na(stop_rapportomrade_namn)) %>%
+    filter(start_rapportomrade_namn %in% rapportomrade) %>%
+    group_by(stop_rapportomrade_namn) %>%
     summarize(antal = n()) %>%
-    pivot_wider(names_from = stop_tatort_namn, values_from = antal, values_fill = 0) %>%
     ungroup()
 
 #minsta antal får aldrig vara större än antalet områden
 minsta_antal <- min(minsta_antal,nrow(od_matrix))
+# summa <- sum(utpendling$antal)
 
-#Skapar totalkolumn
-od_matrix <- od_matrix %>%
-  mutate("Totalt" = rowSums(select_if(., is.numeric), na.rm = TRUE)) %>%
-  arrange(desc(Totalt))
+inom_omrade <- utpendling %>%
+  filter(stop_rapportomrade_namn == rapportomrade)
+andel_inom <- sum(inom_omrade$antal)/sum(utpendling$antal)
 
-#Filtrerar ut populäraste områden på rader samt skapar total- och övriga områden-rader
-od_matrix <- od_matrix %>%
+#Filtrerar ut största och sorterar
+utpendling <- utpendling %>%
+  filter(!(stop_rapportomrade_namn %in% rapportomrade)) %>%
   top_n(minsta_antal) %>%
-    bind_rows(
-      od_matrix %>%
-        filter(!(start_tatort_namn %in% top_n(od_matrix,minsta_antal)$start_tatort_namn)) %>%
-        summarise_if(is.numeric, sum) %>%
-        mutate(start_tatort_namn = "Övriga områden")
-    ) %>%
-  bind_rows(summarize(.,
-                      across(where(is.numeric), sum),
-                      across(where(is.character), ~ "Totalt")))
+  arrange(desc(antal)) #%>%
+  # mutate(antal = antal/summa) %>%
+  # mutate(across(where(is.numeric), ~percent(.x, accuracy = 1))) 
 
-#Filtrerar bort kolumner
-lista_med_tätorter <- pull(od_matrix,start_tatort_namn)
-od_matrix <- od_matrix %>%
-  select(start_tatort_namn,lista_med_tätorter[1:minsta_antal],Totalt) %>%
-  rename("Från tätort" = start_tatort_namn) %>%
-  mutate("Övriga områden" = -rowSums(select_if(., is.numeric), na.rm = TRUE)+2*Totalt) %>%
-  relocate(Totalt, .after = "Övriga områden")
-
-#Omvandlar till dataframe
-od_matrix <- as.data.frame(od_matrix) #Omvandalr till dataframe
-rownames(od_matrix) <- od_matrix$"Från tätort" #Sätter från som indexkolumn
-od_matrix <- select(od_matrix,!c("Från tätort")) #Tar bort dublettkolumn
-
-#Tar bort övrigt-raden om noll
-od_matrix <- od_matrix %>%
-  filter(Totalt > 0) %>%
-  select(which(colSums(.) > 0))
-
-#Skapar procent-matris
-od_matrix_perc <- od_matrix/od_matrix["Totalt","Totalt"]
-od_matrix_perc <- mutate(od_matrix_perc,across(where(is.numeric), ~percent(.x, accuracy = 1))) #Skapar tabell med procent
 
 ```
+Av alla resor utgår från `r (rapportomrade_rubrik)`, görs `r round(100-andel_inom*100)` % till andra områden. Nedan sammanställs utpendlingen för boende i `r (rapportomrade_rubrik)` uttryckt som andelar av resorna som startar i tätorten. Anledningen till att inte inpendling kan redovisas är att urvalet ur resvaneundersökningen enbart omfattar boende i `r (rapportomrade_rubrik)`.
 
 ```{r od-matrix-extern-table, echo = FALSE, result="asis"}
-kable(od_matrix_perc, caption = "Resor av invånare i Bålsta till och/eller från andra tätorter.", booktabs = T, linesep = "",format.args = list( big.mark = " ")) %>%
-  kable_styling(latex_options = c("striped", "HOLD_position"),
-                full_width = TRUE) %>%
-  row_spec(nrow(od_matrix_perc), bold = T) %>% #gör Total-raden fetstilt
-  row_spec(0, bold = T, angle = 45) %>% #gör rubrikraden fetstilt)
-  column_spec(1, bold = T, width = "2cm")
+utpendling_barplot <- ggplot(utpendling, aes(stop_rapportomrade_namn, antal, fill = stop_rapportomrade_namn)) +
+    geom_bar(stat = "identity") +
+    rvu_theme() +
+    coord_cartesian(xlim = c(1,nrow(utpendling))) +
+    geom_text(aes(label=antal),size = 3, position=position_dodge(width=0.9), vjust=-0.25) + #etiketter
+    labs(
+        x = "Resmål",
+        y = "Antal svar",
+        title = "Antal utpendlingsresor"
+    )
+
+utpendling_barplot
 ```
 
 # Bilagor
@@ -1643,8 +1610,10 @@ kable(trip_sys_mode_abs, caption = "Bildisposition per område, redovisat upprä
   kable_styling(latex_options = c("striped", "HOLD_position"),
                 full_width = TRUE) %>%
   row_spec(nrow(trip_sys_mode_abs), bold = T) %>% #gör Total-raden fetstilt
-  row_spec(0, bold = T, angle = 45) %>% #gör rubrikraden fetstilt)
-  column_spec(1, bold = T, width = "2cm")
+  row_spec(0, bold = T) %>% #gör rubrikraden fetstilt)
+  column_spec(1, bold = T, width = "2cm") %>%
+  column_spec(1, bold = T, width = "1.2cm")
+
 ```
 ```{r trip-sys-mode-percent-table, echo = FALSE, results = "asis"}
 kable(trip_sys_mode_percent, caption = "Bilinnehav per område, redovisat i andelar uttryckt i procent.", booktabs = T, linesep = "",format.args = list( big.mark = " ")) %>%
@@ -1767,15 +1736,6 @@ kable(trip_purpose_area_percent, caption = "Resärende per område, redovisat i 
   column_spec(1,width = "2cm")
 ```
 
-
-```{r purpose-table, echo = FALSE, results = "asis"}
-#Följandetext är borttagen...
-#I Tabell \@ref(tab:purpose-table) och Figur \@ref(fig:purpose-diagram) beskrivs vilka ärenden som respondenterna har svarat att de uppfylde med sina resor. Huvudärendet är `r tolower(top_purpose)` och andra mest populärt ärende är `r tolower(top_purpose_2)`.
-
-#Antal svar perärende... Ska inte användas
-# kable(rvu_purp_rep, caption = "Resärenden")
-```
-
 ```{r distance_mode, echo=FALSE, include=FALSE}
 # #Kod till tabell med antal resor per reslängdsklass
 # rvu_distance_below_1 <- rvu %>% 
@@ -1834,22 +1794,4 @@ kable(trip_purpose_area_percent, caption = "Resärende per område, redovisat i 
 # kable(rvu_distance, caption = "Reslängd per färdsätt", booktabs = T, linesep = "",format.args = list( big.mark = " ")) %>%
 #   kable_styling(latex_options = c("striped", "HOLD_position")) %>%
 #   row_spec(0, bold = T) #gör rubrikraden fetstilt
-```
-
-```{r purpose-diagram, echo = FALSE, results = "asis", fig.cap = "Antal resor per ärende."}
-# #Histogram med ärendefrekvens
-# purp_barplot <- ggplot(rvu_purp, aes(answer, antal, fill = answer)) + 
-#     geom_bar(stat = "identity") +
-#     rvu_theme() +
-#     coord_cartesian(xlim = c(0,15)) +
-#     scale_fill_brewer(palette = "Set3") + 
-#     labs(
-#         x = "Ärende",
-#         y = "Antal svar",
-#         title = "Antal resor per ärende"
-#     )
-#     
-# 
-# purp_barplot
-
 ```
