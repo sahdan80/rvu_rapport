@@ -1180,7 +1180,7 @@ purpose_plot
 ```
 
 
-## Reslängd och trafikarbete
+## Reslängd och fordonskilometer
 ```{r travel_dist, echo=FALSE, include = FALSE}
 #Räknar ut totalt
 reslangd_summa_tot <- reslangd %>%
@@ -1232,7 +1232,7 @@ reslangd_per_omrade_rep <- crossing(unique(reslangd$Omrade), unique(reslangd$Fä
     Median = ifelse(is.na(Median), "-", round(Median/1000)),
     Medel = ifelse(is.na(Medel), "-", round(Medel/1000)),
     "Totalt antal resor" = ifelse(is.na(Totalt_antal_resor), "-", round(Totalt_antal_resor/100)*100),
-    "Trafikarbete totalt" = ifelse(is.na(Trafikarbete_totalt), "-", round(Trafikarbete_totalt/1000)),
+    "Totalt antal fordonskilometer" = ifelse(is.na(Trafikarbete_totalt), "-", round(Trafikarbete_totalt/1000)),
     "Antal observationer" = ifelse(is.na(Antal_observationer), 0, Antal_observationer)
   ) %>%
   select(-Antal_observationer,-Totalt_antal_resor,-Trafikarbete_totalt)
@@ -1243,7 +1243,9 @@ reslangd_per_omrade_rep <- reslangd_per_omrade_rep %>%
   select(-Omrade)
 ```
 
-I resdagboken har intervjupersonerna fått fylla i plats för resmål, som sparats i staitisiken i form av koordinater. Dessa koordinater har använts för att uppskatta avstånd för varje resa med respektive färdmedel. Det partiella bortfallet på grund av avsaknade koordinater är X procent. Dessutom redovisas här inte resor som saknar specifikation om färdmedel. I flera grupper är underlaget färre `r tolower(tillräckligt_underlag)` respondenter. För dessa har resultat utelämnats. Se Tabell... 
+I resdagboken har intervjupersonerna fått fylla i plats för resmål, som sparats i staitisiken i form av koordinater. Dessa koordinater har använts för att uppskatta avstånd för varje resa med respektive färdmedel. Det partiella bortfallet på grund av avsaknade koordinater är X procent. Den sammanlagda ressträckan som utövas av alla individer kallas trafikarbete och mäts i fordonskilometer. I det här fallet betecknar detta det totala antalet kilometer som invånarna inom respektive område har förflyttat sig med respektive färdmedel under en genomsnittsdag.
+
+I tabellen nedan framgår median, medelvärde, samt totalt antal fordonskilometer per område. I tabellen exkluderas resor som saknar angivna start- och slutkoordinater, samt de som saknar specifikation om färdmedel. I flera grupper är underlaget färre än `r tolower(tillräckligt_underlag)` respondenter. För dessa har resultat utelämnats.
 
 ```{r travel_dist-table1, echo = FALSE, results = "asis"}
 
@@ -1400,6 +1402,18 @@ od_matrix <- as.data.frame(od_matrix) #Omvandalr till dataframe
 rownames(od_matrix) <- od_matrix$"Från område" #Sätter från som indexkolumn
 od_matrix <- select(od_matrix,!c("Från område")) #Tar bort dublettkolumn
 
+#Plockar ut maxrelationen
+od_matrix_plain <- od_matrix[1:(nrow(od_matrix)-2),1:(ncol(od_matrix)-2)] #utan övriga och total-rader/kolumner
+od_matrix_plain_mellan <- (diag(nrow(od_matrix_plain))-1)*-1
+max <- which(od_matrix_plain_mellan == max(od_matrix_plain_mellan), arr.ind = TRUE)
+max_fran <- rownames(od_matrix_plain_mellan)[max[1]]
+max_till <- colnames(od_matrix_plain_mellan)[max[2]]
+
+#Plockar ut störst inom området-resor
+od_matrix_plain_diag <- diag(nrow(od_matrix_plain))*od_matrix_plain
+max <- which(od_matrix_plain_diag == max(od_matrix_plain_diag), arr.ind = TRUE)
+max_inom <- rownames(od_matrix_plain)[max[1]]
+
 #Tar bort övrigt-raden om noll
 od_matrix <- od_matrix %>%
   filter(Totalt > 0) %>%
@@ -1412,11 +1426,10 @@ od_matrix_perc <- mutate(od_matrix_perc,across(where(is.numeric), ~percent(.x, a
 
 <Exempeltext>
 X procent av resorna sker inom `r (rapportomrade_text)`. 
-Den vanligaste förekommande resan inom ett område sker i X. Den vanligaste resan mellan två områden är från X till Y.
-(Behöver generaliseras för att visa tätortsnivå om kommun-rapport och kommunnivå om regionrapport)
+Den vanligaste förekommande resan inom ett område sker i  `r (max_inom)`. Den vanligaste resan mellan två områden är från `r (max_fran)` till `r (max_till)`.
 
 ```{r od-matrix-table, echo = FALSE, result="asis"}
-kable(od_matrix_perc, caption = "Fördelning av resorna inom tätorten.", booktabs = T, linesep = "",format.args = list( big.mark = " ")) %>%
+kable(od_matrix_perc, caption = "Fördelning av resorna inom rapportområdet. Radrubrik visar var resar börjar och kolumnrubriker visar var resan slutar.", booktabs = T, linesep = "",format.args = list( big.mark = " ")) %>%
   kable_styling(latex_options = c("striped", "HOLD_position"),
                 full_width = TRUE) %>%
   row_spec(nrow(od_matrix_perc), bold = T) %>% #gör Total-raden fetstilt
