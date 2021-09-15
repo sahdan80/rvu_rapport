@@ -2,15 +2,16 @@
 \contentsline {section}{\numberline {1}Sammanfattning}{1}{section.1}%
 \contentsline {subsection}{\numberline {1.1}Antal resor}{2}{subsection.1.1}%
 \contentsline {subsection}{\numberline {1.2}Färdmedelsfördelning}{2}{subsection.1.2}%
-\contentsline {subsection}{\numberline {1.3}Fördelning mellan ålderskategorier}{3}{subsection.1.3}%
-\contentsline {subsection}{\numberline {1.4}Vanligaste målpunkterna}{3}{subsection.1.4}%
-\contentsline {section}{\numberline {2}Inledning}{3}{section.2}%
+\contentsline {subsection}{\numberline {1.3}Fördelning mellan män och kvinnor}{3}{subsection.1.3}%
+\contentsline {subsection}{\numberline {1.4}Fördelning mellan ålderskategorier}{3}{subsection.1.4}%
+\contentsline {subsection}{\numberline {1.5}Vanligaste målpunkterna}{3}{subsection.1.5}%
+\contentsline {section}{\numberline {2}Inledning}{4}{section.2}%
 \contentsline {subsection}{\numberline {2.1}Metod}{4}{subsection.2.1}%
 \contentsline {subsection}{\numberline {2.2}Population och urval}{4}{subsection.2.2}%
 \contentsline {section}{\numberline {3}Resultat}{5}{section.3}%
 \contentsline {subsection}{\numberline {3.1}Körkort och biltillgång}{5}{subsection.3.1}%
 \contentsline {subsection}{\numberline {3.2}Antal resor}{6}{subsection.3.2}%
-\contentsline {subsection}{\numberline {3.3}Resornas fördelning på färdsätt}{6}{subsection.3.3}%
+\contentsline {subsection}{\numberline {3.3}Resornas fördelning på färdsätt}{7}{subsection.3.3}%
 \contentsline {subsection}{\numberline {3.4}Bakgrundfrågor}{7}{subsection.3.4}%
 \contentsline {subsubsection}{\numberline {3.4.1}Färdsätt efter kön}{7}{subsubsection.3.4.1}%
 \contentsline {subsubsection}{\numberline {3.4.2}Färdsätt efter ålder}{8}{subsubsection.3.4.2}%
@@ -19,6 +20,6 @@
 \contentsline {subsection}{\numberline {3.5}Reslängd och fordonskilometer}{11}{subsection.3.5}%
 \contentsline {subsubsection}{\numberline {3.5.1}Reserelationer inom Bålsta tätort}{13}{subsubsection.3.5.1}%
 \contentsline {subsubsection}{\numberline {3.5.2}Utpendling från Bålsta tätort}{14}{subsubsection.3.5.2}%
-\contentsline {section}{\numberline {4}Bilagor}{14}{section.4}%
-\contentsline {subsection}{\numberline {4.1}Karta}{14}{subsection.4.1}%
-\contentsline {subsection}{\numberline {4.2}Detaljerade tabeller}{14}{subsection.4.2}%
+\contentsline {section}{\numberline {4}Bilagor}{15}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Karta}{15}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Detaljerade tabeller}{15}{subsection.4.2}%

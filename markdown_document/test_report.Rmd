@@ -166,8 +166,8 @@ avst <- read_delim("restid_håbo2021.csv", ";", escape_double = FALSE,
   select(respondentid, resa_nr, distance_straight_line, distance_google)
 
 #Bestämmer vilken bostadsinfo som ska användas beroende på rapportnivå...
-rvu <- mutate(rvu,start_deso_namn = start_deso) #Flag: Den här ska tas bort när Björn uppdaterat indatatabellerna.
-rvu <- mutate(rvu,stop_deso_namn = stop_deso) #Flag: Den här ska tas bort när Björn uppdaterat indatatabellerna.
+# rvu <- mutate(rvu,start_deso_namn = start_deso) #Flag: Den här ska tas bort när Björn uppdaterat indatatabellerna.
+# rvu <- mutate(rvu,stop_deso_namn = stop_deso) #Flag: Den här ska tas bort när Björn uppdaterat indatatabellerna.
 
 pers <- mutate(pers,Omrade = .data[[paste("bostad_",omradesniva,"_namn",sep="")]])
 pers <- mutate(pers,Omrade_kod = .data[[paste("bostad_",omradesniva,"_kod",sep="")]])
@@ -278,8 +278,7 @@ labels_data <- labels_data %>%
 
 # Sammanfattning
 
-Under <tidsperiod> besvarade antal_personer kollektivtrafiksbarometern i `r (rapportomrade_text)` i åldern 15–84 år. Syftet med undersökningen är att kartlägga hur resandet ser ut en genomsnittlig vardag <tidsperiod>. Undersökningen omfattar enbart persontransporter och har genomförts 
-som en enkätundersökning. Resultaten är viktade med avseende på urvalsområde, kön och ålder för att motsvara hela befolkningen i den undersökta åldersgruppen.
+Under `r paste(min(pers$ar),ifelse(min(pers$ar)!=max(pers$ar),paste("-",max(pers$ar),sep = ""),""),sep = "")` besvarades kollektivtrafiksbarometern av `r (length(unique(rvu$respondentid)))` 15-85-åringar boende i `r (rapportomrade_text)`. Syftet med undersökningen är att kartlägga hur resandet ser ut en genomsnittlig vardag `r max(pers$ar)`. Undersökningen omfattar enbart persontransporter och har genomförts som en enkätundersökning. Resultaten är viktade med avseende på urvalsområde, kön och ålder för att motsvara hela befolkningen i den undersökta åldersgruppen.
 
 ```{r antal_resor, echo=FALSE, include=FALSE}
 
@@ -319,7 +318,7 @@ num_trips_age <- pers %>%
   summarize("Andel personer som rest (%)" = 100*sum(!is.na(num_trips)) / n(),
             "Resor per dag för alla personer" = sum(num_trips, na.rm = TRUE) / n(),
             "Resor per dag för personer som rest" = mean(num_trips, na.rm = TRUE)) %>%
-  mutate(alder = c("Mellan 15 och 24", "Mellan 25 och 64", "Mellan 65 och 85")) %>%
+  mutate(alder = c("15-24 år", "25-64 år", "65-85 år")) %>%
   rename('Grupp' = alder) %>%
   mutate('Befolkning' = c(sum(befolkning_per_område$Ålder_15_19,na.rm = TRUE)+sum(befolkning_per_område$Ålder_20_24,na.rm = TRUE),
                           sum(befolkning_per_område$Ålder_25_39,na.rm = TRUE)+sum(befolkning_per_område$Ålder_40_64,na.rm = TRUE),
@@ -343,53 +342,8 @@ num_trips_rep <- num_trips_gender %>%
 
 ```
 
-
-```{r antal_resor_text, echo=FALSE, include=FALSE}
-#####Textproduktion#####
-
-#Hittar åldersgrupp med störst andel personer som rest
-num_trips_age_df <- as.data.frame(num_trips_age)
-rownames(num_trips_age_df) <- num_trips_age_df$"Grupp" #ställer in indexkolumn
-maxgrupp_andel_rest <- num_trips_age_df[which.max(num_trips_age_df$`Andel personer som rest (%)`),1]
-maxgrupp_andel_rest_varde <- max(num_trips_age_df$`Andel personer som rest (%)`)
-
-num_trips_män <- num_trips_gender %>%
-  filter(Grupp == "Man") %>%
-  select("Resor per dag för alla personer")
-
-num_trips_kvinnor <- num_trips_gender %>%
-  filter(Grupp == "Kvinna") %>%
-  select("Resor per dag för alla personer")
-
-avvikelse <- abs((num_trips_män-num_trips_kvinnor)/(num_trips_kvinnor+num_trips_män))
-if (num_trips_män > num_trips_kvinnor) {
-  kön1 <- "män"
-  kön2 <- "kvinnor"
-} else {
-  kön1 <- "kvinnor"
-  kön2 <- "män"
-}
-
-konjunktion <- ""
-if (avvikelse>0.032) {
-  if (avvikelse>0.064) {
-    text <- paste("I genomsnitt gjorde ",kön1," mycket fler resor än ",kön2,". ",sep="")
-  } else {
-    text <- paste("I genomsnitt gjorde ",kön1," något fler resor än ",kön2,". ",sep="")
-  }} else {
-    text <- paste("I genomsnitt reste både ",kön1," och ",kön2," i lika stor utsträckning. ",sep="")
-    konjunktion <- "heller "
-}
-
-avvikelse <- sd(num_trips_age$"Resor per dag för alla personer", na.rm=TRUE)
-if (avvikelse<0.1) {
-  text <- paste(text,"De olika åldersgrupperna skilde sig inte ",konjunktion,"märkbart i antal resor per dag. ",sep="")
-}
-
-```
-
 ## Antal resor
-Antalet resor per dygn i `r (rapportomrade_text)` uppgick i `r round(num_trips_all$"Antal resor")`. I genomsnitt gjorde `r round(num_trips_all$"Andel personer som rest (%)")` procent åtminstone en resa per dag. I åldersgruppen `r (maxgrupp_andel_rest)` var andelen som rest `r round(maxgrupp_andel_rest_varde)` procent, vilket är mer än andra åldersgrupper.
+Antalet resor per dygn i `r (rapportomrade_text)` uppgick till `r round(num_trips_all$"Antal resor")`. I genomsnitt gjorde `r round(num_trips_all$"Andel personer som rest (%)")` procent åtminstone en resa per dag.
 
 
 ```{r fordonskilometer_bearbetning, echo = FALSE, results = "asis", fig.cap = "Resornas färdmedelsfördelning per område."}
@@ -718,10 +672,15 @@ reslangd_barplot <- ggplot(reslangd_per_fardmedel, aes(factor(Färdmedel, level 
 
 reslangd_barplot
 ```
+
 ## Fördelning mellan män och kvinnor
 
 <Exempeltext>
+
 Män och kvinnor gör ungefär lika många resor per person och dag, Y respektive X. Män använder bil i högre utsträckning än kvinnor, Y procent jämfört med X procent. Kvinnor och män cyklar ungefär i lika stor utsträckning, Y procent respektive X procent. 
+
+
+Tabell: Antal resor per dag per resenärsgrupp : Andel personer som rest (%) : Kvinna/Man
 
 ## Fördelning mellan ålderskategorier
 
@@ -939,10 +898,66 @@ kbl(korkort_bil, caption = "Antal respondenter med körkort och biltillgång", b
   row_spec(nrow(korkort_bil), bold = T) %>% #gör Total-raden fetstilt
   row_spec(0, bold = T) #gör rubrikraden fetstilt
 ```
+```{r antal_resor_text, echo=FALSE, include=FALSE}
+#####Textproduktion#####
+
+#Hittar åldersgrupp med störst andel personer som rest
+num_trips_age_df <- as.data.frame(num_trips_age)
+rownames(num_trips_age_df) <- num_trips_age_df$"Grupp" #ställer in indexkolumn
+maxgrupp_andel_rest <- num_trips_age_df[which.max(num_trips_age_df$`Andel personer som rest (%)`),1]
+maxgrupp_andel_rest_varde <- max(num_trips_age_df$`Andel personer som rest (%)`)
+
+num_trips_gender_df <- num_trips_gender %>%
+  as.data.frame() %>%
+  `rownames<-`(.[,1])  %>% #skapar indexkolumn
+  select(!(Grupp))
+
+konjunktion <- ""
+#Andel som rest
+avvikelse <- (abs(1 - num_trips_gender_df["Man","Andel personer som rest (%)"] / num_trips_gender_df["Kvinna","Andel personer som rest (%)"]))
+if (num_trips_gender_df["Man","Andel personer som rest (%)"] > num_trips_gender_df["Kvinna","Andel personer som rest (%)"]) {
+  kön1a <- "män"
+  kön2a <- "kvinnor"
+} else {
+  kön1a <- "kvinnor"
+  kön2a <- "män"
+}
+if (avvikelse > 0.8) {
+  text <- paste("Andelen som rest bland ",kön1a," är högre än bland ",kön2a,". ",sep="")
+  konjunktion <- "dock"
+  konjunktion2 <- "dessutom"
+} else {
+    text <- paste("Andelen som rest bland ",kön1a," och ",kön2a," var i samma storleksordning. ",sep="")
+    konjunktion <- "dessutom"
+    konjunktion2 <- "dock"
+}
+
+
+#Resor per dag för personer som rest
+avvikelse <- abs((num_trips_gender_df["Man","Resor per dag för personer som rest"]-num_trips_gender_df["Kvinna","Resor per dag för personer som rest"])/(num_trips_gender_df["Kvinna","Resor per dag för personer som rest"]+num_trips_gender_df["Man","Resor per dag för personer som rest"]))
+if (num_trips_gender_df["Man","Resor per dag för personer som rest"] > num_trips_gender_df["Kvinna","Resor per dag för personer som rest"]) {
+  kön1b <- "män"
+  kön2b <- "kvinnor"
+} else {
+  kön1b <- "kvinnor"
+  kön2b <- "män"
+}
+
+ifelse(kön1a!=kön1b,konjunktion2 <- "däremot")
+
+if (avvikelse>0.032) {
+  text <- paste(text, "Bland de som reser var ",konjunktion2," antalet resor per dag större bland ",kön1b," än bland ",kön2b,". ",sep="")
+  } else {
+    text <- paste(text, "Bland de som reser var ",konjunktion," antalet resor per dag snarlikt mellan ",kön1b," och ",kön2b,". ",sep="")
+    konjunktion <- "heller "
+}
+
+```
 
 ## Antal resor
+En genomsnittlig dag gjorde `r round(num_trips_all$"Andel personer som rest (%)")` % av personer 15-85 år bosatta i `r (rapportomrade_text)` åtminstone en resa och totalt genomfördes `r round(num_trips_all$"Antal resor")` resor. Det motsvarar `r round(num_trips_all$"Resor per dag för alla personer")` resor per person och dag. I Tabell \@ref(tab:num-trips-table) framgår andel personer som rest och deras antal resor per dag redovisat per kön och ålderskategori.
 
-En genomsnittlig dag genomfördes `r round(num_trips_all$"Antal resor",0)` resor i `r (rapportomrade_text)` av personer 15–85 år bosatta inom det undersökta utredningsområdet. I Tabell \@ref(tab:num-trips-table) framgår andel personer som rest och deras antal resor per dag redovisat per kön och ålderskategori.
+`r text` I åldersgruppen `r (maxgrupp_andel_rest)` var andelen som rest `r round(maxgrupp_andel_rest_varde)` procent, vilket är mer än övriga åldersgrupper.
 
 ```{r num-trips-table, echo = FALSE, results = "asis"}
 x <- kbl(num_trips_rep, digits = 1, longtable = T, booktabs = T, linesep = "",caption = "Antal resor per dag per resenärsgrupp",format.args = list( big.mark = " ")) %>%
@@ -1003,9 +1018,6 @@ Nedan följer sammanställningar kopplade till respondenternas egenskaper.
 
 ### Färdsätt efter kön
 
-<Exempeltext>
-Andelen kvinnor och män  i undersökningen är ungefär lika stora, X respektive Y procent. Hur de reser brukar skilja sig åt, så även i denna mätning. X åker mer bil men har färre förflyttningar med färdmedel Y.
-
 ```{r trips_gender, echo=FALSE, include=FALSE}
 trip_mode_gender <- rvu %>%
   left_join(select(pers, c("respondentid","kon")), by = c("respondentid" = "respondentid")) %>% #Hämtar könskolumn från pers-data
@@ -1046,6 +1058,107 @@ trip_mode_gender_abs <- trip_mode_gender_andel %>%
   select(!Befolkning) %>%
   filter(Kön != "Okänt")
 ```
+
+```{r trips_gender_text, echo=FALSE, include=FALSE}
+#####Textproduktion#####
+
+respondenter_tabell_df <- respondenter_tabell %>%
+  as.data.frame() %>%
+  `rownames<-`(.[,1]) %>% #skapar indexkolumn
+  select(!(Omrade))
+
+andel_man <- respondenter_tabell_df["Totalt","Man"]/(respondenter_tabell_df["Totalt","Man"]+respondenter_tabell_df["Totalt","Kvinnor"])
+andel_kvinnor <- respondenter_tabell_df["Totalt","Kvinnor"]/(respondenter_tabell_df["Totalt","Man"]+respondenter_tabell_df["Totalt","Kvinnor"])
+
+trip_mode_gender_andel_df <- trip_mode_gender_andel %>%
+  as.data.frame() %>%
+  `rownames<-`(.[,1]) %>% #skapar indexkolumn
+  select(!(Kön))
+
+text <- ""
+avvikelse <- trip_mode_gender_andel_df["Kvinna","Bil"] - trip_mode_gender_andel_df["Man","Bil"]
+if (avvikelse > 0.02) {
+  text <- paste(text,"Vad gäller färdmedelsandelar var bil populärare bland kvinnor än bland män. ",sep = "")
+} else if (avvikelse < -0.02) {
+  text <- paste(text,"Vad gäller färdmedelsandelar var bil populärare bland män än bland kvinnor. ",sep = "")
+} else {
+  text <- paste(text,"Vad gäller färdmedelsandelar var bil ungefär lika populärt bland män som bland kvinnor. ",sep = "")
+}
+
+avvikelse <- (trip_mode_gender_andel_df["Kvinna","Tåg"]+trip_mode_gender_andel_df["Kvinna","Buss"]) -
+  (trip_mode_gender_andel_df["Man","Tåg"]+trip_mode_gender_andel_df["Man","Buss"])
+if (avvikelse > 0.02) {
+  text <- paste(text,"Kollektivtrafik var populärare bland kvinnor än bland män. ",sep = "")
+} else if (avvikelse < -0.02) {
+  text <- paste(text,"Kollektivtrafik var populärare bland män än bland kvinnor. ",sep = "")
+} else {
+  text <- paste(text,"Kollektivtrafik var ungefär lika populärt bland män som bland kvinnor. ",sep = "")
+}
+
+avvikelse <- trip_mode_gender_andel_df["Kvinna","Cykel"] - trip_mode_gender_andel_df["Man","Cykel"]
+if (avvikelse > 0.02) {
+  text <- paste(text,"Cykel var populärare bland kvinnor än bland män. ",sep = "")
+} else if (avvikelse < -0.02) {
+  text <- paste(text,"Cykel var populärare bland män än bland kvinnor. ",sep = "")
+} else {
+  text <- paste(text,"Cykel var ungefär lika populärt bland män som bland kvinnor. ",sep = "")
+}
+
+# 
+# #Hittar åldersgrupp med störst andel personer som rest
+# num_trips_age_df <- as.data.frame(num_trips_age)
+# rownames(num_trips_age_df) <- num_trips_age_df$"Grupp" #ställer in indexkolumn
+# maxgrupp_andel_rest <- num_trips_age_df[which.max(num_trips_age_df$`Andel personer som rest (%)`),1]
+# maxgrupp_andel_rest_varde <- max(num_trips_age_df$`Andel personer som rest (%)`)
+# 
+# num_trips_gender_df <- num_trips_gender %>%
+#   as.data.frame() %>%
+#   `rownames<-`(.[,1])  %>% #skapar indexkolumn
+#   select(!(Grupp))
+# 
+# konjunktion <- ""
+# #Andel som rest
+# avvikelse <- (abs(1 - num_trips_gender_df["Man","Andel personer som rest (%)"] / num_trips_gender_df["Kvinna","Andel personer som rest (%)"]))
+# if (num_trips_gender_df["Man","Andel personer som rest (%)"] > num_trips_gender_df["Kvinna","Andel personer som rest (%)"]) {
+#   kön1a <- "män"
+#   kön2a <- "kvinnor"
+# } else {
+#   kön1a <- "kvinnor"
+#   kön2a <- "män"
+# }
+# if (avvikelse > 0.8) {
+#   text <- paste("Andelen som rest bland ",kön1a," är högre än bland ",kön2a,". ",sep="")
+#   konjunktion <- "dock"
+#   konjunktion2 <- "dessutom"
+# } else {
+#     text <- paste("Andelen som rest bland ",kön1a," och ",kön2a," var i samma storleksordning. ",sep="")
+#     konjunktion <- "dessutom"
+#     konjunktion2 <- "dock"
+# }
+# 
+# 
+# #Resor per dag för personer som rest
+# avvikelse <- abs((num_trips_gender_df["Man","Resor per dag för personer som rest"]-num_trips_gender_df["Kvinna","Resor per dag för personer som rest"])/(num_trips_gender_df["Kvinna","Resor per dag för personer som rest"]+num_trips_gender_df["Man","Resor per dag för personer som rest"]))
+# if (num_trips_gender_df["Man","Resor per dag för personer som rest"] > num_trips_gender_df["Kvinna","Resor per dag för personer som rest"]) {
+#   kön1b <- "män"
+#   kön2b <- "kvinnor"
+# } else {
+#   kön1b <- "kvinnor"
+#   kön2b <- "män"
+# }
+# 
+# ifelse(kön1a!=kön1b,konjunktion2 <- "däremot")
+# 
+# if (avvikelse>0.032) {
+#   text <- paste(text, "Bland de som reser var ",konjunktion2," antalet resor per dag större bland ",kön1b," än bland ",kön2b,". ",sep="")
+#   } else {
+#     text <- paste(text, "Bland de som reser var ",konjunktion," antalet resor per dag snarlikt mellan ",kön1b," och ",kön2b,". ",sep="")
+#     konjunktion <- "heller "
+# }
+
+```
+<Exempeltext>
+Andelen män och kvinnor i undersökningen är `r round(andel_man)` respektive `r round(andel_kvinnor)` %. Hur de reser brukar skilja sig åt. X åker mer bil men har färre förflyttningar med färdmedel Y.andel_kvinnor
 
 ```{r kön-diagram, echo = FALSE, results = "asis", fig.cap = "Resornas färdmedelsfördelning per kön."}
 #skapa Percent stacked barchart
