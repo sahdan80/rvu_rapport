@@ -3,6 +3,7 @@ author: "WSP"
 date: "`r Sys.Date()`"
 site: bookdown::bookdown_site
 output:
+  bookdown::html_document2:
   bookdown::pdf_document2: default
 header-includes:
   - \renewcommand{\figurename}{Figur }
@@ -13,24 +14,7 @@ header-includes:
   - \makeatletter
   - \def\tnum@table{\tablename\thetable}
   - \makeatother
-  # Har inte fått detta att fungera än:
-  # if (!require("pacman")) install.packages("pacman")
-  # pacman::p_load(booktabs)
-  # pacman::p_load(longtable)
-  # pacman::p_load(array)
-  # pacman::p_load(multirow)
-  # pacman::p_load(wrapfig)
-  # pacman::p_load(float)
-  # pacman::p_load(colortbl)
-  # pacman::p_load(pdflscape)
-  # pacman::p_load(tabu)
-  # pacman::p_load(threeparttable)
-  # pacman::p_load(threeparttablex)
-  # pacman::p_load(normalem)
-  # pacman::p_load(makecell)
-  # pacman::p_load(xcolor)
-  # pacman::p_load(document)
-
+  
   - \usepackage{booktabs}
   - \usepackage{longtable}
   - \usepackage{array}
@@ -67,14 +51,16 @@ title: Resvaneundersökning i `r rapportomrade_rubrik`
 ---
 
 ```{r setup, include=FALSE}
-library(knitr)
-library(kableExtra)
-library(tidyverse)
-library(readxl)
-library(bookdown)
-library(pxweb)
-library(scales)
-library(stringi)
+
+  required_packages_list <-  c(
+  "knitr", "kableExtra", "tidyverse", "readxl", "bookdown", "pxweb", "scales", "stringi")
+  
+  for (pack in required_packages_list){
+    if(pack %in% installed.packages() == FALSE){install.packages(pack)}
+}
+
+lapply(required_packages_list, require, character.only = TRUE)
+
 inline_hook<-function(x){
   if(is.numeric(x)){
     formatted<-format(x,big.mark = " ")
@@ -92,13 +78,13 @@ rvu_theme <- function() {
         plot.title = element_text(colour = "steelblue", face = "bold"),
         plot.background = element_rect(fill = "white"),
         # add border 1)
-        panel.border = element_rect(colour = "blue", fill = NA, linetype = 1),
+        panel.border = element_rect(fill = NA, linetype = 1),
         # color background 2)
-        panel.background = element_rect(fill = "aliceblue"),
+        panel.background = element_rect(fill = "white"),
         # modify grid 3)
         panel.grid.major.x = element_blank(),
         panel.grid.minor.x = element_blank(),
-        panel.grid.major.y =  element_line(colour = "steelblue", linetype = 3, size = 0.5),
+        panel.grid.major.y =  element_line(linetype = 3, size = 0.5),
         panel.grid.minor.y = element_blank(),
         # modify text, axis and colour 4) and 5)
         axis.title.y = element_text(colour = "steelblue"),
@@ -111,7 +97,7 @@ rvu_theme <- function() {
         # legend at the bottom 6)
         legend.position = "right",
         legend.title = element_blank(),
-        legend.background = element_rect(colour = "steelblue", fill = "aliceblue")
+        legend.background = element_rect(colour = NA, fill = "white")
     )
 }
 
@@ -166,8 +152,13 @@ avst <- read_delim("restid_håbo2021.csv", ";", escape_double = FALSE,
   select(respondentid, resa_nr, distance_straight_line, distance_google)
 
 #Bestämmer vilken bostadsinfo som ska användas beroende på rapportnivå...
+<<<<<<< Updated upstream
 # rvu <- mutate(rvu,start_deso_namn = start_deso) #Flag: Den här ska tas bort när Björn uppdaterat indatatabellerna.
 # rvu <- mutate(rvu,stop_deso_namn = stop_deso) #Flag: Den här ska tas bort när Björn uppdaterat indatatabellerna.
+=======
+#rvu <- mutate(rvu,start_deso_namn = start_deso) #Flag: Den här ska tas bort när Björn uppdaterat indatatabellerna.
+#rvu <- mutate(rvu,stop_deso_namn = stop_deso) #Flag: Den här ska tas bort när Björn uppdaterat indatatabellerna.
+>>>>>>> Stashed changes
 
 pers <- mutate(pers,Omrade = .data[[paste("bostad_",omradesniva,"_namn",sep="")]])
 pers <- mutate(pers,Omrade_kod = .data[[paste("bostad_",omradesniva,"_kod",sep="")]])
@@ -207,7 +198,15 @@ rvu_yr <- pers %>% group_by(ar) %>% summarise(resp_in_year = n()) %>%
 table_api_address = "http://api.scb.se/OV0104/v1/doris/en/ssd/BE/BE0101/BE0101Y/FolkmDesoAldKonN"
 
 #Om fel, väljs ett tidigare år:
-rvu_yr <- as.character(as.numeric(rvu_yr)-1)
+#rvu_yr <- as.character(as.numeric(rvu_yr)-1) # flag: ta bort
+
+
+scb_data_last_year <- pxweb_get(table_api_address)$variables[5][[1]]$values %>% rev()
+#Getting the latest year if the RVU year not in the SCB table
+if(!(as.numeric(rvu_yr) %in% scb_data_last_year)){
+  rvu_yr <- scb_data_last_year[1]
+}
+
 
 pxweb_query_list <- 
     list("Region"=c('*'), # Use "*" to select all
@@ -249,6 +248,7 @@ rvu <- rvu %>%
   left_join(select(respondent2omrade, c(respondentid,Omrade,Omrade_kod)), by = c("respondentid" = "respondentid"))
 
 ```
+
 ```{r fraga-svar-nyckel, echo=FALSE, include = FALSE}
 
 #Lookup-table för att hämta klartext
@@ -391,7 +391,8 @@ resor_per_individ <- reslangd %>% #Resor per individ blir överskattat pga fel m
 resor_per_individ_summa <- resor_per_individ %>%
   group_by(Färdmedel) %>%
   summarise("Totalt_antal_resor" = round(sum(Totalt_antal_resor,na.rm = TRUE),0)) %>%
-  arrange(desc(Totalt_antal_resor))
+  arrange(desc(Totalt_antal_resor)) %>%
+  mutate(Perc_resor = Totalt_antal_resor / sum(Totalt_antal_resor))
 
 #Här definieras den globala parametern som bestämmer ordning på färdmedel i alla diagram
 ordning_fardmedel <- resor_per_individ_summa$Färdmedel
@@ -413,6 +414,7 @@ reslangd_summa <- reslangd %>%
   summarise("Median" = round(median(avstand),0), "Medel" = round(mean(avstand),1), "Antal_observationer" = n()) %>%
   mutate(Omrade = c("Alla")) %>%
   left_join(resor_per_individ_summa, by = c("Färdmedel" = "Färdmedel")) %>%
+  select(-Perc_resor) %>%
   mutate(Trafikarbete_totalt = Totalt_antal_resor*Medel) %>%
   arrange(desc(Totalt_antal_resor))
 
@@ -632,12 +634,13 @@ Färdmedelsfördelningen visar att `r tolower(mest_frekvent_färdmedel)` är det
 
 ```{r fardmedelsfordelning-diagram, echo = FALSE, results = "asis", fig.cap = "Resornas färdmedelsfördelning per område."}
 #Histogram med resandefrekvens
-resor_barplot <- ggplot(resor_per_individ_summa, aes(factor(Färdmedel, level = ordning_fardmedel), Totalt_antal_resor, fill = factor(Färdmedel, level = ordning_fardmedel))) +
+resor_barplot <- ggplot(resor_per_individ_summa, aes(factor(Färdmedel, level = ordning_fardmedel), Perc_resor, fill = factor(Färdmedel, level = ordning_fardmedel))) +
     geom_bar(stat = "identity") +
     rvu_theme() +
     coord_cartesian(xlim = c(1,nrow(resor_per_individ_summa))) +
     scale_fill_manual(values=rev(palett)) +
-    geom_text(aes(label=round(Totalt_antal_resor/100)*100),size = 3, position=position_dodge(width=0.9), vjust=-0.25) + #etiketter
+    scale_y_continuous(labels = scales::percent) +
+    geom_text(aes(label=percent(Perc_resor, 1)),size = 3, position=position_dodge(width=0.9), vjust=-0.25) + #etiketter
     # scale_fill_discrete(breaks=ordning_fardmedel) +
     labs(
         x = "Färdmedel",
@@ -1691,7 +1694,8 @@ andel_inom <- sum(inom_omrade$antal)/sum(utpendling$antal)
 utpendling <- utpendling %>%
   filter(!(stop_rapportomrade_namn %in% rapportomrade)) %>%
   top_n(minsta_antal) %>%
-  arrange(desc(antal)) #%>%
+  arrange(desc(antal)) %>%
+  mutate(perc = antal/sum(antal))#%>%
   # mutate(antal = antal/summa) %>%
   # mutate(across(where(is.numeric), ~percent(.x, accuracy = 1))) 
 
@@ -1700,11 +1704,12 @@ utpendling <- utpendling %>%
 Av alla resor utgår från `r (rapportomrade_rubrik)`, görs `r round(100-andel_inom*100)` % till andra områden. Nedan sammanställs utpendlingen för boende i `r (rapportomrade_rubrik)` uttryckt som andelar av resorna som startar i tätorten. Anledningen till att inte inpendling kan redovisas är att urvalet ur resvaneundersökningen enbart omfattar boende i `r (rapportomrade_rubrik)`.
 
 ```{r od-matrix-extern-table, echo = FALSE, result="asis"}
-utpendling_barplot <- ggplot(utpendling, aes(stop_rapportomrade_namn, antal, fill = stop_rapportomrade_namn)) +
+utpendling_barplot <- ggplot(utpendling, aes(stop_rapportomrade_namn, perc, fill = stop_rapportomrade_namn)) +
     geom_bar(stat = "identity") +
     rvu_theme() +
+   scale_y_continuous(labels = scales::percent) +
     coord_cartesian(xlim = c(1,nrow(utpendling))) +
-    geom_text(aes(label=antal),size = 3, position=position_dodge(width=0.9), vjust=-0.25) + #etiketter
+    geom_text(aes(label=percent(perc, 0.1)),size = 3, position=position_dodge(width=0.9), vjust=-0.25) + #etiketter
     labs(
         x = "Resmål",
         y = "Antal svar",
