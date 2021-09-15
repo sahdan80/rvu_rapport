@@ -11,7 +11,7 @@
 \contentsline {section}{\numberline {3}Resultat}{5}{section.3}%
 \contentsline {subsection}{\numberline {3.1}Körkort och biltillgång}{5}{subsection.3.1}%
 \contentsline {subsection}{\numberline {3.2}Antal resor}{6}{subsection.3.2}%
-\contentsline {subsection}{\numberline {3.3}Resornas fördelning på färdsätt}{7}{subsection.3.3}%
+\contentsline {subsection}{\numberline {3.3}Resornas fördelning på färdsätt}{6}{subsection.3.3}%
 \contentsline {subsection}{\numberline {3.4}Bakgrundfrågor}{7}{subsection.3.4}%
 \contentsline {subsubsection}{\numberline {3.4.1}Färdsätt efter kön}{7}{subsubsection.3.4.1}%
 \contentsline {subsubsection}{\numberline {3.4.2}Färdsätt efter ålder}{8}{subsubsection.3.4.2}%
