@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.23 (TeX Live 2021/W32TeX) (preloaded format=pdflatex 2021.8.31)  15 SEP 2021 22:20
+This is pdfTeX, Version 3.141592653-2.6-1.40.23 (TeX Live 2021/W32TeX) (preloaded format=pdflatex 2021.8.31)  16 SEP 2021 12:16
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -798,15 +798,15 @@ l.154
 as been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.178 
+l.176 
        <./test_report_files/figure-latex/fardmedelsfordelning-km-diagram-1.pdf>
 ] [4]
-Overfull \hbox (1.98761pt too wide) in paragraph at lines 206--221
+Overfull \hbox (1.98761pt too wide) in paragraph at lines 204--219
  [][] 
  []
 
 
-Overfull \hbox (35.4797pt too wide) in paragraph at lines 229--244
+Overfull \hbox (35.4797pt too wide) in paragraph at lines 227--242
  [][] 
  []
 
@@ -814,21 +814,21 @@ Overfull \hbox (35.4797pt too wide) in paragraph at lines 229--244
 as been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.259 I
+l.257 I
         Bålsta hade 84 procent av respondenterna körkort och 90 procent ti...
 pdfTeX warning (ext4): destination with the same identifier (name{table.2}) has
  been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.259 I
+l.257 I
         Bålsta hade 84 procent av respondenterna körkort och 90 procent ti...
 ]
-Overfull \hbox (8.28516pt too wide) in paragraph at lines 292--292
+Overfull \hbox (8.28516pt too wide) in paragraph at lines 290--290
  []|\T1/lmr/bx/n/10 Befolkning|
  []
 
 
-Overfull \hbox (8.28516pt too wide) in paragraph at lines 297--297
+Overfull \hbox (8.28516pt too wide) in paragraph at lines 295--295
  []|\T1/lmr/bx/n/10 Befolkning|
  []
 
@@ -838,13 +838,13 @@ File: test_report_files/figure-latex/omrade-diagram-1.pdf Graphic file (type pd
 f)
 <use test_report_files/figure-latex/omrade-diagram-1.pdf>
 Package pdftex.def Info: test_report_files/figure-latex/omrade-diagram-1.pdf  u
-sed on input line 331.
+sed on input line 329.
 (pdftex.def)             Requested size: 469.75386pt x 325.2142pt.
 [6pdfTeX warning (ext4): destination with the same identifier (name{table.3}) h
 as been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.333 \end{figure}
+l.331 \end{figure}
                   ]
 <test_report_files/figure-latex/kön-diagram-1.pdf, id=179, 469.755pt x 325.215
 pt>
@@ -852,29 +852,29 @@ File: test_report_files/figure-latex/kön-diagram-1.pdf Graphic file (type pdf)
 
 <use test_report_files/figure-latex/kön-diagram-1.pdf>
 Package pdftex.def Info: test_report_files/figure-latex/kön-diagram-1.pdf  use
-d on input line 347.
+d on input line 345.
 (pdftex.def)             Requested size: 469.75386pt x 325.2142pt.
 [7pdfTeX warning (ext4): destination with the same identifier (name{figure.3}) 
 has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.350 
+l.348 
        <./test_report_files/figure-latex/omrade-diagram-1.pdf>]
-<test_report_files/figure-latex/ålder-diagram-1.pdf, id=193, 469.755pt x 325.2
-15pt>
-File: test_report_files/figure-latex/ålder-diagram-1.pdf Graphic file (type pd
-f)
-<use test_report_files/figure-latex/ålder-diagram-1.pdf>
-Package pdftex.def Info: test_report_files/figure-latex/ålder-diagram-1.pdf  u
-sed on input line 358.
+<test_report_files/figure-latex/alder-diagram-1.pdf, id=194, 469.755pt x 325.21
+5pt>
+File: test_report_files/figure-latex/alder-diagram-1.pdf Graphic file (type pdf
+)
+<use test_report_files/figure-latex/alder-diagram-1.pdf>
+Package pdftex.def Info: test_report_files/figure-latex/alder-diagram-1.pdf  us
+ed on input line 356.
 (pdftex.def)             Requested size: 469.75386pt x 325.2142pt.
 [8pdfTeX warning (ext4): destination with the same identifier (name{figure.4}) 
 has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.361 
+l.359 
        <./test_report_files/figure-latex/kön-diagram-1.pdf>]
-<test_report_files/figure-latex/sys-diagram-1.pdf, id=206, 469.755pt x 325.215p
+<test_report_files/figure-latex/sys-diagram-1.pdf, id=208, 469.755pt x 325.215p
 t>
 File: test_report_files/figure-latex/sys-diagram-1.pdf Graphic file (type pdf)
 <use test_report_files/figure-latex/sys-diagram-1.pdf>
@@ -886,8 +886,8 @@ has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
 l.372 
-       <./test_report_files/figure-latex/ålder-diagram-1.pdf>]
-<test_report_files/figure-latex/ärende-diagram-1.pdf, id=219, 469.755pt x 325.
+       <./test_report_files/figure-latex/alder-diagram-1.pdf>]
+<test_report_files/figure-latex/ärende-diagram-1.pdf, id=220, 469.755pt x 325.
 215pt>
 File: test_report_files/figure-latex/ärende-diagram-1.pdf Graphic file (type p
 df)
@@ -907,7 +907,7 @@ used, duplicate ignored
                                                   \__shipout_drop_firstpage_...
 l.417 \end{longtable}
                       <./test_report_files/figure-latex/ärende-diagram-1.pdf>]
-<test_report_files/figure-latex/avstånds-diagram-1.pdf, id=245, 469.755pt x 32
+<test_report_files/figure-latex/avstånds-diagram-1.pdf, id=246, 469.755pt x 32
 5.215pt>
 File: test_report_files/figure-latex/avstånds-diagram-1.pdf Graphic file (type
  pdf)
@@ -976,7 +976,7 @@ Overfull \hbox (2.90753pt too wide) in paragraph at lines 481--481
                                                   \__shipout_drop_firstpage_...
 l.483 
        <./test_report_files/figure-latex/avstånds-diagram-1.pdf>]
-<test_report_files/figure-latex/od-matrix-extern-table-1.pdf, id=265, 469.755pt
+<test_report_files/figure-latex/od-matrix-extern-table-1.pdf, id=266, 469.755pt
  x 325.215pt>
 File: test_report_files/figure-latex/od-matrix-extern-table-1.pdf Graphic file 
 (type pdf)
@@ -1350,7 +1350,7 @@ Package rerunfilecheck Info: File `test_report.out' has not changed.
  ) 
 Here is how much of TeX's memory you used:
  12447 strings out of 480559
- 187199 string characters out of 5901444
+ 187191 string characters out of 5901444
  532112 words of memory out of 5000000
  29707 multiletter control sequences out of 15000+600000
  453084 words of font info for 67 fonts, out of 8000000 for 9000
@@ -1363,10 +1363,10 @@ pe1/public/lm/lmbx12.pfb><c:/Users/SETK21602/AppData/Roaming/TinyTeX/texmf-dist
 /fonts/type1/public/lm/lmr10.pfb><c:/Users/SETK21602/AppData/Roaming/TinyTeX/te
 xmf-dist/fonts/type1/public/lm/lmr12.pfb><c:/Users/SETK21602/AppData/Roaming/Ti
 nyTeX/texmf-dist/fonts/type1/public/lm/lmr17.pfb>
-Output written on test_report.pdf (24 pages, 229354 bytes).
+Output written on test_report.pdf (24 pages, 230417 bytes).
 PDF statistics:
- 386 PDF objects out of 1000 (max. 8388607)
- 328 compressed objects within 4 object streams
+ 387 PDF objects out of 1000 (max. 8388607)
+ 329 compressed objects within 4 object streams
  104 named destinations out of 1000 (max. 500000)
  198 words of extra memory for PDF output out of 10000 (max. 10000000)
 
