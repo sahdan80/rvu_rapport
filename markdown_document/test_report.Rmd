@@ -44,6 +44,8 @@ omradesniva <- "deso" #'kommun' #'tatort' #vilken områdesnivån som resultaten 
 palett <- c("#5144d3","#53a17f","#3599d5","#e6ad00","#d57667","#9e1863")
 # Hämtar befolkningsdata per DeSO/kommun/region från SCBs API #OBS ändras denna kommer även koden för inläsning behöva ändras
 table_api_address = "http://api.scb.se/OV0104/v1/doris/en/ssd/BE/BE0101/BE0101Y/FolkmDesoAldKonN"
+#Sökväg för indatafiler:
+sokvag <- ""#"H:\\Projekt\\Bålsta RVU\\R\\rvu_rapport\\markdown_document\\" #Tom sträng eller mappsökväg
 ```
 ---
 title: Resvaneundersökning i `r rapportomrade_rubrik`
@@ -54,7 +56,7 @@ title: Resvaneundersökning i `r rapportomrade_rubrik`
 ```{r setup, include=FALSE}
 
   required_packages_list <-  c(
-  "knitr", "kableExtra", "tidyverse", "readxl", "bookdown", "pxweb", "scales", "stringi")
+  "knitr", "kableExtra", "tidyverse", "readxl", "bookdown", "pxweb", "scales", "stringi", "leaflet", "sf", "mapview", "processx", "tinytex")
   
   for (pack in required_packages_list){
     if(pack %in% installed.packages() == FALSE){install.packages(pack)}
@@ -141,15 +143,15 @@ upprakning<-function(lista,max_antal_uppräknade){
 
 ```{r read_data, echo=FALSE, include = FALSE}
 
-rvu <- read_delim("rvu_håbo2021.csv", ";", escape_double = FALSE, 
-                    locale = locale(encoding = "ISO-8859-1"), 
+rvu <- read_delim(paste0(sokvag,"rvu_håbo2021.csv"), ";", escape_double = FALSE,
+                    locale = locale(encoding = "ISO-8859-1"),
                     trim_ws = TRUE)
 
-pers <- read_delim("person_håbo2021.csv", ";", escape_double = FALSE, 
+pers <- read_delim(paste0(sokvag,"person_håbo2021.csv"), ";", escape_double = FALSE, 
                      locale = locale(encoding = "ISO-8859-1"), 
                      trim_ws = TRUE)
 
-avst <- read_delim("restid_håbo2021.csv", ";", escape_double = FALSE, 
+avst <- read_delim(paste0(sokvag,"restid_håbo2021.csv"), ";", escape_double = FALSE, 
                      locale = locale(encoding = "ISO-8859-1"), 
                      trim_ws = TRUE) %>%
   select(respondentid, resa_nr, distance_straight_line, distance_google)
@@ -245,9 +247,9 @@ rvu <- rvu %>%
 ```{r fraga-svar-nyckel, echo=FALSE, include = FALSE}
 
 #Lookup-table för att hämta klartext
-variable_data <- read_excel("Variable information + Variable Values 2021-05-28.xlsx",
+variable_data <- read_excel(paste0(sokvag,"Variable information + Variable Values 2021-05-28.xlsx"),
                             sheet = "Variable Labels", skip = 1, col_names = TRUE)
-labels_data <- read_excel("Variable information + Variable Values 2021-05-28.xlsx",
+labels_data <- read_excel(paste0(sokvag,"Variable information + Variable Values 2021-05-28.xlsx"),
                           sheet = "Value Labels", skip = 1, col_names = TRUE)
 
 
@@ -268,6 +270,7 @@ labels_data <- labels_data %>%
   select(question_id,answer_id,answer)
 
 ```
+\newpage
 
 # Sammanfattning
 
@@ -289,18 +292,18 @@ befolkning_per_område <- pers %>%
   summarize() %>%
   left_join(scb_befolkning, by = c("Omrade_kod" = "Omrade_kod")) 
 
-vars <- c("Antal personer", "Resor per dag för alla personer")
+vars <- c("Antal personer", "Resor per dag och person")
 
 num_trips_gender <- pers %>%
   select(respondentid, kon) %>%
   left_join(num_trips_per_pers, by = c("respondentid" = "respondentid")) %>%
   group_by(kon) %>%
   summarize("Andel personer som rest (%)" = 100*sum(!is.na(num_trips)) / n(),
-            "Resor per dag för alla personer" = sum(num_trips, na.rm = TRUE) / n(),
-            "Resor per dag för personer som rest" = mean(num_trips, na.rm = TRUE)) %>%
+            "Resor per dag och person" = sum(num_trips, na.rm = TRUE) / n(),
+            "Resor per dag och person (enbart de som rest)" = mean(num_trips, na.rm = TRUE)) %>%
   rename('Grupp' = kon) %>%
   mutate('Befolkning' = c(sum(befolkning_per_område$Kvinnor,na.rm = TRUE),sum(befolkning_per_område$Män,na.rm = TRUE),0),
-         'Antal resor' = round(.data[["Befolkning"]] * .data[["Resor per dag för alla personer"]]))
+         'Antal resor' = round(.data[["Befolkning"]] * .data[["Resor per dag och person"]]))
 
 
 num_trips_age <- pers %>%
@@ -309,25 +312,25 @@ num_trips_age <- pers %>%
   left_join(num_trips_per_pers, by = c("respondentid" = "respondentid")) %>%
   group_by(alder = cut(alder, breaks = c(12, 24, 64, 150))) %>%
   summarize("Andel personer som rest (%)" = 100*sum(!is.na(num_trips)) / n(),
-            "Resor per dag för alla personer" = sum(num_trips, na.rm = TRUE) / n(),
-            "Resor per dag för personer som rest" = mean(num_trips, na.rm = TRUE)) %>%
+            "Resor per dag och person" = sum(num_trips, na.rm = TRUE) / n(),
+            "Resor per dag och person (enbart de som rest)" = mean(num_trips, na.rm = TRUE)) %>%
   mutate(alder = c("15-24 år", "25-64 år", "65-85 år")) %>%
   rename('Grupp' = alder) %>%
   mutate('Befolkning' = c(sum(befolkning_per_område$Ålder_15_19,na.rm = TRUE)+sum(befolkning_per_område$Ålder_20_24,na.rm = TRUE),
                           sum(befolkning_per_område$Ålder_25_39,na.rm = TRUE)+sum(befolkning_per_område$Ålder_40_64,na.rm = TRUE),
                           sum(befolkning_per_område$Ålder_65_74,na.rm = TRUE)+sum(befolkning_per_område$Ålder_75,na.rm = TRUE)),
-         'Antal resor' = round(.data[["Befolkning"]] * .data[["Resor per dag för alla personer"]]))
+         'Antal resor' = round(.data[["Befolkning"]] * .data[["Resor per dag och person"]]))
 
 num_trips_all <- pers %>%
   select(respondentid) %>%
   left_join(num_trips_per_pers, by = c("respondentid" = "respondentid")) %>%
   #group_by(kon) %>%
   summarize("Andel personer som rest (%)" = 100*sum(!is.na(num_trips)) / n(),
-            "Resor per dag för alla personer" = sum(num_trips, na.rm = TRUE) / n(),
-            "Resor per dag för personer som rest" = mean(num_trips, na.rm = TRUE)) %>%
+            "Resor per dag och person" = sum(num_trips, na.rm = TRUE) / n(),
+            "Resor per dag och person (enbart de som rest)" = mean(num_trips, na.rm = TRUE)) %>%
   mutate('Grupp' = "Alla",
          'Befolkning' = sum(befolkning_per_område$Befolkning,na.rm = TRUE),
-         'Antal resor' = round(.data[["Befolkning"]] * .data[["Resor per dag för alla personer"]]))
+         'Antal resor' = round(.data[["Befolkning"]] * .data[["Resor per dag och person"]]))
 
 num_trips_rep <- num_trips_gender %>%
   rbind(num_trips_age) %>%
@@ -684,13 +687,15 @@ Andelen cykelresor är högst i åldersgruppen 18–24 år, där X procent av re
 <Information från 3.5.1 och 3.5.2>
 Den vanligaste förekommande resan oavsett färdsätt inom ett område sker inom X följt av Y. Mellan två områden är den vanligaste förekommande reserelationen mellan X och Y följt av relationen X och Y.
 
+\newpage
+
 # Inledning
 
 Följande resvanerapport har tagits fram för att öka kunskapen om dagens resmönster för olika trafikantgrupper i `r (rapportomrade_text)`. Rapportens resultat avser att ge en bild av hur resandet ser ut en genomsnittlig vardag `r max(pers$ar)`. Resultatet utgör ett viktigt underlag för att planera för en hållbar tillväxt och ett hållbart resande. Rapporten är skapad genom ett automatiserat skript, framtaget av WSP på uppdrag av Region Uppsala. Skriptet läser och sammanställer data från kollektivtrafikbarometern, samt presenterar och kommenterar resultaten i löpande text. 
 
 ## Metod
 
-Rapporten är baserad på data från Svensk Kollektivtrafiks Kollektivtrafikbarometern (https://www.svenskkollektivtrafik.se/verktyg-och-system/kollektivtrafikbarometern/). Kollektivtrafikbarometern är en branschgemensam nationell kvalitets- och resvaneundersökning som riktar sig till den svenska allmänheten mellan 15 och 85 år, både de som använder kollektivtrafiken och de som inte gör det. Till grunden av datainsamlingen ligger ett slumpmässigt och representativt individurval ur ett befolkningsregister utifrån postnummerområden.
+Rapporten är baserad på data från Svensk Kollektivtrafiks Kollektivtrafikbarometern^[https://www.svenskkollektivtrafik.se/verktyg-och-system/kollektivtrafikbarometern/]. Kollektivtrafikbarometern  \footnote{Test} är en branschgemensam nationell kvalitets- och resvaneundersökning som riktar sig till den svenska allmänheten mellan 15 och 85 år, både de som använder kollektivtrafiken och de som inte gör det. Till grunden av datainsamlingen ligger ett slumpmässigt och representativt individurval ur ett befolkningsregister utifrån postnummerområden.
 
 Till skillnad från de flesta resvaneundersökningar utförs Kollektivtrafikbarometer kontinuerligt med dataleveranser varje månad. Fördelen med en kontinuerlig insamling är att säsongsvariationer utjämnas och enskilda händelser (tex mycket regn under insamlingsperioden) påverkar resultatet inte särskilt. Det är också möjligt i princip, dock inte med rapportverktyget, att följa trender över tid och analysera skillnader i resandet under olika årstider.
 
@@ -698,10 +703,9 @@ Datainsamlingen sker via en inbjudan som skickas via post till personer som ing�
 
 Inbjudan som skickas till valda personer innehåller en länk till en webbportal där personen får svara på frågor. Varje svarsperson får registrera upp till fem resor som gjordes dagen innan. För varje resa besvaras ett antal frågor som tillexempel resans ärende, färdmedel och var resan började och avslutades. Resans start och slut registreras av svarspersonen i en onlinekarta. Respektive koordinater extraheras och bifogas till datatabellen.
 
-Hanteringen av Kollektivtrafikbarometerns rådata är automatiserad med hjälp av ett skript som är skrivet i programmeringsspråket R (https://github.com/bjornsh/kollektivtrafikbarometer). I datahanteringen ingår kategorisering av resekoordinater, tex inom eller utanför en tätort, anonymisering som rensar bort personuppgifter ifall data ska delas utanför organisationen, och beräkning av reslängder med hjälp av Google directions API (https://developers.google.com/maps/documentation/directions/overview).
+Hanteringen av Kollektivtrafikbarometerns rådata är automatiserad med hjälp av ett skript som är skrivet i programmeringsspråket R. I datahanteringen ingår kategorisering av resekoordinater, tex inom eller utanför en tätort, anonymisering som rensar bort personuppgifter ifall data ska delas utanför organisationen, och beräkning av reslängder med hjälp av Google directions API^[https://developers.google.com/maps/documentation/directions/overview].
 
-Produktionen av RVU-rapporten sker också genom ett skript. Skriptet möjliggör rapporter på region, kommun och tätort nivå genom filtrering av data. Rapportens geografiska omfattning och tidsperiod definieras i indata till skriptet.
-För Kollektivtrafiksbarometerns enkät och andra bakgrundsdokument se länkar på https://github.com/bjornsh/kollektivtrafikbarometer 
+Produktionen av RVU-rapporten sker också genom ett skript. Skriptet möjliggör rapporter på region, kommun och tätort nivå genom filtrering av data. Rapportens geografiska omfattning och tidsperiod definieras i indata till skriptet. Kollektivtrafiksbarometerns enkät, skript och andra bakgrundsdokument finns tillgängliga på programkodslagringsplattformen GitHub^[https://github.com/bjornsh/kollektivtrafikbarometer]. 
 
 ```{r respondant_details, echo=FALSE, include = FALSE}
 respondenter <- pers %>%
@@ -804,6 +808,8 @@ kbl(respondenter_tabell, caption = "Antal svar per kön och åldersgrupp", bookt
   row_spec(0, bold = T) #gör rubrikraden fetstilt
 ```
 Eftersom svarsbenägenheten varierar mellan olika grupper av invånare kan viss skevhet i representationen uppstå, trots att urvalet från början gjorts på ett representativt sätt. Genom att använda en mixad insamlingsmetod, där fysisk post, telefon och sms har använts för att nå respondenterna, har svarsunderlaget kunnat hålla en bättre representativitet än traditionella underskningar. Viktning mot kön, ålder och urvalsområde har därför inte ansetts vara nödvändig.
+
+\newpage
 
 # Resultat
 
@@ -925,9 +931,9 @@ if (avvikelse > 0.8) {
 }
 
 
-#Resor per dag för personer som rest
-avvikelse <- abs((num_trips_gender_df["Man","Resor per dag för personer som rest"]-num_trips_gender_df["Kvinna","Resor per dag för personer som rest"])/(num_trips_gender_df["Kvinna","Resor per dag för personer som rest"]+num_trips_gender_df["Man","Resor per dag för personer som rest"]))
-if (num_trips_gender_df["Man","Resor per dag för personer som rest"] > num_trips_gender_df["Kvinna","Resor per dag för personer som rest"]) {
+#Resor per dag och person (enbart de som rest)
+avvikelse <- abs((num_trips_gender_df["Man","Resor per dag och person (enbart de som rest)"]-num_trips_gender_df["Kvinna","Resor per dag och person (enbart de som rest)"])/(num_trips_gender_df["Kvinna","Resor per dag och person (enbart de som rest)"]+num_trips_gender_df["Man","Resor per dag och person (enbart de som rest)"]))
+if (num_trips_gender_df["Man","Resor per dag och person (enbart de som rest)"] > num_trips_gender_df["Kvinna","Resor per dag och person (enbart de som rest)"]) {
   kön1b <- "män"
   kön2b <- "kvinnor"
 } else {
@@ -947,7 +953,7 @@ if (avvikelse>0.032) {
 ```
 
 ## Antal resor
-En genomsnittlig dag gjorde `r round(num_trips_all$"Andel personer som rest (%)")` % av personer 15-85 år bosatta i `r (rapportomrade_text)` åtminstone en resa och totalt genomfördes `r round(num_trips_all$"Antal resor")` resor. Det motsvarar `r round(num_trips_all$"Resor per dag för alla personer")` resor per person och dag. I Tabell \@ref(tab:num-trips-table) framgår andel personer som rest och deras antal resor per dag redovisat per kön och ålderskategori.
+En genomsnittlig dag gjorde `r round(num_trips_all$"Andel personer som rest (%)")` % av personer 15-85 år bosatta i `r (rapportomrade_text)` åtminstone en resa och totalt genomfördes `r round(num_trips_all$"Antal resor")` resor. Det motsvarar `r round(num_trips_all$"Resor per dag och person")` resor per person och dag. I Tabell \@ref(tab:num-trips-table) framgår andel personer som rest och deras antal resor per dag redovisat per kön och ålderskategori.
 
 `r text_kon` I åldersgruppen `r (maxgrupp_andel_rest)` var andelen som rest `r round(maxgrupp_andel_rest_varde)` procent, vilket är mer än övriga åldersgrupper.
 
@@ -962,7 +968,7 @@ x <- kbl(num_trips_rep, digits = 1, longtable = T, booktabs = T, linesep = "",ca
   #row_spec(nrow(reslangd_per_omrade_rep), bold = T) %>% #gör Total-raden fetstilt
   row_spec(0, bold = T) %>% #gör rubrikraden fetstilt
   column_spec(2:4, width = "2.5cm") %>%
-  column_spec(1:1, width = "3cm") %>%
+  column_spec(1:1, width = "2cm") %>%
   column_spec(5:6, width = "1.6cm")
 
 for (i in c(1:2)){
@@ -1694,6 +1700,7 @@ kable(od_matrix_perc, caption = "Fördelning av resorna inom rapportområdet. Ra
   kable_styling(latex_options = c("striped", "HOLD_position"),
                 full_width = TRUE) %>%
   row_spec(nrow(od_matrix_perc), bold = T) %>% #gör Total-raden fetstilt
+  column_spec(ncol(od_matrix_perc), bold = T) %>% #gör Total-raden fetstilt
   row_spec(0, bold = T, angle = 45) %>% #gör rubrikraden fetstilt)
   column_spec(1, bold = T, width = "2cm")
 ```
@@ -1702,7 +1709,7 @@ kable(od_matrix_perc, caption = "Fördelning av resorna inom rapportområdet. Ra
 
 ```{r od_matrix_extern, echo=FALSE, include = FALSE}
 
-minsta_antal <- 10
+minsta_antal <- 6
 
 #Skapar od-matris för alla resor
 utpendling <- rvu %>%
@@ -1744,19 +1751,54 @@ utpendling_barplot <- ggplot(utpendling, aes(stop_rapportomrade_namn, perc, fill
     geom_text(aes(label=percent(perc, 0.1)),size = 3, position=position_dodge(width=0.9), vjust=-0.25) + #etiketter
     labs(
         x = "Resmål",
-        y = "Antal svar",
-        title = "Antal utpendlingsresor"
+        y = "Andel resor",
+        title = "Andel utpendlingsresor"
     )
 
 utpendling_barplot
 ```
+\newpage
 
 # Bilagor
 
 ## Karta
 
 Här följer en karta över det undersökta området.
-<Denna är ej inlagd i dokumentet ännu, men kod finns>
+
+```{r skapa-karta, echo = FALSE, include = FALSE}
+#Från https://www.scb.se/contentassets/923c3627a8a042a5b9215e8ff3bde0a3/deso_2018_v2.zip
+map_deso <- st_read(paste0(sokvag,"deso_2018_v2/DeSO_2018_v2.gpkg")) %>%
+    filter(deso %in% pers$bostad_deso_kod) %>%
+    st_transform(4326) %>% #transform coordinates to 4326 (WGS 84). Leaflet always needs coordinates to be in 4326, then projects in 3857.
+    leaflet() %>% #create map 
+    addProviderTiles(providers$CartoDB.PositronNoLabels, options = tileOptions(opacity = 0.5)) %>%
+    addPolygons(color = "#222222", 
+                weight = 1,
+                smoothFactor = 0.5,
+                opacity = 0.5,
+                fillOpacity = 0.2,
+                fillColor = "red",
+                label = ~deso,
+                labelOptions = labelOptions(permanent = TRUE)) %>%
+  mapshot(file = "karta_omraden.png", remove_controls = "zoomControl")
+
+
+#Following needs modification, which areas to filter
+if(FALSE){
+map_kommun <- st_read("To2018_Swe99TM.shp") %>% #read shapefile and filter
+    filter(LAN_NAMN == "Uppsala län") %>%
+    st_transform(4326) %>% #transform coordinates to 4326 (WGS 84). Leaflet always needs coordinates to be in 4326, then projects in 3857.
+    leaflet() %>% #create map
+    addPolygons(color = "#444444", weight = 1, smoothFactor = 0.5, #aesthetics (don't work?)
+                opacity = 1.0, fillOpacity = 0.5,
+                fillColor = "#444444",
+                highlightOptions = highlightOptions(color = "white", weight = 2,
+                                                    bringToFront = TRUE)) %>%
+  mapshot(file = "karta_omraden.png", remove_controls = "zoomControl")
+}
+
+```
+![Karta av alla områden i RVU:n]("karta_omraden.png")
 
 ## Detaljerade tabeller
 
