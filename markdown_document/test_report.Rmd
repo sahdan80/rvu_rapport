@@ -47,6 +47,7 @@ table_api_address = "http://api.scb.se/OV0104/v1/doris/en/ssd/BE/BE0101/BE0101Y/
 #Sökväg för indatafiler:
 sokvag <- ""#"H:\\Projekt\\Bålsta RVU\\R\\rvu_rapport\\markdown_document\\" #Tom sträng eller mappsökväg
 ```
+
 ---
 title: Resvaneundersökning i `r rapportomrade_rubrik`
 ---
@@ -74,6 +75,7 @@ inline_hook<-function(x){
 }
 knit_hooks$set(inline = inline_hook)
 ```
+
 
 ```{r plot-theme-creation, include = FALSE}
 rvu_theme <- function() {
@@ -652,18 +654,20 @@ resor_barplot
 #Tabell till diagram
 reslangd_per_fardmedel <- reslangd_summa %>%
   ungroup() %>%
-  select(Färdmedel,Trafikarbete_totalt)
+  select(Färdmedel,Trafikarbete_totalt) %>%
+  mutate(perc_reslangd = Trafikarbete_totalt / sum(Trafikarbete_totalt))
 
 #Stapeldiagram med reslängd
-reslangd_barplot <- ggplot(reslangd_per_fardmedel, aes(factor(Färdmedel, level = ordning_fardmedel), Trafikarbete_totalt, fill = factor(Färdmedel, level = ordning_fardmedel))) +
+reslangd_barplot <- ggplot(reslangd_per_fardmedel, aes(factor(Färdmedel, level = ordning_fardmedel), perc_reslangd, fill = factor(Färdmedel, level = ordning_fardmedel))) +
     geom_bar(stat = "identity") +
     rvu_theme() +
     coord_cartesian(xlim = c(1,nrow(reslangd_per_fardmedel))) +
     scale_fill_manual(values=rev(palett)) +
-    geom_text(aes(label=round(Trafikarbete_totalt/1000/1000)*1000),size = 3, position=position_dodge(width=0.9), vjust=-0.25) + #etiketter
+    scale_y_continuous(labels = scales::percent) +
+    geom_text(aes(label=percent(perc_reslangd, 0.1)),size = 3, position=position_dodge(width=0.9), vjust=-0.25) + #etiketter
     labs(
         x = "Färdmedel",
-        y = "Total reslängd (km)",
+        y = "Andel av det totala trafikarbetet",
         title = "Reslängd per färdmedel"
     )
 
@@ -1700,9 +1704,10 @@ kable(od_matrix_perc, caption = "Fördelning av resorna inom rapportområdet. Ra
   kable_styling(latex_options = c("striped", "HOLD_position"),
                 full_width = TRUE) %>%
   row_spec(nrow(od_matrix_perc), bold = T) %>% #gör Total-raden fetstilt
-  column_spec(ncol(od_matrix_perc), bold = T) %>% #gör Total-raden fetstilt
+  column_spec(ncol(od_matrix_perc)+1, bold = T) %>% #gör Total-raden fetstilt
   row_spec(0, bold = T, angle = 45) %>% #gör rubrikraden fetstilt)
-  column_spec(1, bold = T, width = "2cm")
+  column_spec(1, bold = T, width = "6cm")
+
 ```
 ### Utpendling från `r (rapportomrade_rubrik)`
 
@@ -1766,9 +1771,18 @@ utpendling_barplot
 Här följer en karta över det undersökta området.
 
 ```{r skapa-karta, echo = FALSE, include = FALSE}
+
+if (omradesniva == "deso"){
 #Från https://www.scb.se/contentassets/923c3627a8a042a5b9215e8ff3bde0a3/deso_2018_v2.zip
-map_deso <- st_read(paste0(sokvag,"deso_2018_v2/DeSO_2018_v2.gpkg")) %>%
+  
+deso_data <- st_read("deso_2018_v2/DeSO_2018_v2.gpkg") %>%
     filter(deso %in% pers$bostad_deso_kod) %>%
+    left_join(pers[, c("Omrade", "Omrade_kod")], by = c("deso" = "Omrade_kod")) %>%
+    distinct() %>%
+    arrange(Omrade) %>%
+    mutate(deso_rank = row_number())
+  
+map_deso <- deso_data %>%
     st_transform(4326) %>% #transform coordinates to 4326 (WGS 84). Leaflet always needs coordinates to be in 4326, then projects in 3857.
     leaflet() %>% #create map 
     addProviderTiles(providers$CartoDB.PositronNoLabels, options = tileOptions(opacity = 0.5)) %>%
@@ -1778,27 +1792,67 @@ map_deso <- st_read(paste0(sokvag,"deso_2018_v2/DeSO_2018_v2.gpkg")) %>%
                 opacity = 0.5,
                 fillOpacity = 0.2,
                 fillColor = "red",
-                label = ~deso,
-                labelOptions = labelOptions(permanent = TRUE)) %>%
+                label = ~deso_rank,
+                labelOptions = labelOptions(permanent = TRUE,
+                                            textsize = "12px", direction = "center")) %>%
   mapshot(file = "karta_omraden.png", remove_controls = "zoomControl")
 
+deso_data_table <- deso_data %>%
+  st_set_geometry(NULL) %>%
+  select(deso_rank, Omrade, deso) %>%
+  rename("#" = deso_rank,
+         "Områdets namn" = Omrade,
+         "Områdets kod" = deso)
+
+}
 
 #Following needs modification, which areas to filter
-if(FALSE){
+if(omradesniva == "tätort"){
 map_kommun <- st_read("To2018_Swe99TM.shp") %>% #read shapefile and filter
     filter(LAN_NAMN == "Uppsala län") %>%
     st_transform(4326) %>% #transform coordinates to 4326 (WGS 84). Leaflet always needs coordinates to be in 4326, then projects in 3857.
     leaflet() %>% #create map
-    addPolygons(color = "#444444", weight = 1, smoothFactor = 0.5, #aesthetics (don't work?)
-                opacity = 1.0, fillOpacity = 0.5,
-                fillColor = "#444444",
-                highlightOptions = highlightOptions(color = "white", weight = 2,
-                                                    bringToFront = TRUE)) %>%
+    addPolygons(color = "#222222", 
+                weight = 1,
+                smoothFactor = 0.5,
+                opacity = 0.5,
+                fillOpacity = 0.2,
+                fillColor = "red",
+                label = ~TATORT,
+                labelOptions = labelOptions(permanent = TRUE,
+                                            textsize = "12px", direction = "center")) %>%
+  mapshot(file = "karta_omraden.png", remove_controls = "zoomControl")
+}
+
+if(omradesniva == "kommun"){
+map_kommun <- st_read("To2018_Swe99TM.shp") %>% #read shapefile and filter
+    filter(LAN_NAMN == "Uppsala län") %>%
+    st_transform(4326) %>% #transform coordinates to 4326 (WGS 84). Leaflet always needs coordinates to be in 4326, then projects in 3857.
+    leaflet() %>% #create map
+    addPolygons(color = "#222222", 
+                weight = 1,
+                smoothFactor = 0.5,
+                opacity = 0.5,
+                fillOpacity = 0.2,
+                fillColor = "red",
+                label = ~KOMMUNNAMN,
+                labelOptions = labelOptions(permanent = TRUE,
+                                            textsize = "12px", direction = "center")) %>%
   mapshot(file = "karta_omraden.png", remove_controls = "zoomControl")
 }
 
 ```
 ![Karta av alla områden i RVU:n]("karta_omraden.png")
+
+```{r karta-table, echo=FALSE, results= "asis"}
+
+if(omradesniva == "deso"){
+kable(deso_data_table, caption = "Nyckel mellan kod och områden", booktabs = T, linesep = "",format.args = list( big.mark = " ")) %>%
+  kable_styling(latex_options = c("striped", "HOLD_position"),
+                full_width = TRUE)
+}
+
+```
 
 ## Detaljerade tabeller
 
