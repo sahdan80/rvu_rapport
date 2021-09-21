@@ -8,18 +8,18 @@
 \contentsline {section}{\numberline {2}Inledning}{4}{section.2}%
 \contentsline {subsection}{\numberline {2.1}Metod}{4}{subsection.2.1}%
 \contentsline {subsection}{\numberline {2.2}Population och urval}{4}{subsection.2.2}%
-\contentsline {section}{\numberline {3}Resultat}{6}{section.3}%
-\contentsline {subsection}{\numberline {3.1}Körkort och biltillgång}{6}{subsection.3.1}%
-\contentsline {subsection}{\numberline {3.2}Antal resor}{6}{subsection.3.2}%
-\contentsline {subsection}{\numberline {3.3}Resornas fördelning på färdsätt}{7}{subsection.3.3}%
-\contentsline {subsection}{\numberline {3.4}Bakgrundfrågor}{8}{subsection.3.4}%
-\contentsline {subsubsection}{\numberline {3.4.1}Färdsätt efter kön}{8}{subsubsection.3.4.1}%
-\contentsline {subsubsection}{\numberline {3.4.2}Färdsätt efter ålder}{8}{subsubsection.3.4.2}%
-\contentsline {subsubsection}{\numberline {3.4.3}Färdsätt efter sysselsättning}{9}{subsubsection.3.4.3}%
-\contentsline {subsubsection}{\numberline {3.4.4}Färdsätt efter ärende}{10}{subsubsection.3.4.4}%
-\contentsline {subsection}{\numberline {3.5}Reslängd och fordonskilometer}{11}{subsection.3.5}%
-\contentsline {subsubsection}{\numberline {3.5.1}Reserelationer inom Bålsta tätort}{13}{subsubsection.3.5.1}%
-\contentsline {subsubsection}{\numberline {3.5.2}Utpendling från Bålsta tätort}{14}{subsubsection.3.5.2}%
-\contentsline {section}{\numberline {4}Bilagor}{16}{section.4}%
-\contentsline {subsection}{\numberline {4.1}Karta}{16}{subsection.4.1}%
-\contentsline {subsection}{\numberline {4.2}Detaljerade tabeller}{16}{subsection.4.2}%
+\contentsline {section}{\numberline {3}Resultat}{7}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Körkort och biltillgång}{7}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Antal resor}{7}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}Resornas fördelning på färdsätt}{8}{subsection.3.3}%
+\contentsline {subsection}{\numberline {3.4}Bakgrundfrågor}{9}{subsection.3.4}%
+\contentsline {subsubsection}{\numberline {3.4.1}Färdsätt efter kön}{9}{subsubsection.3.4.1}%
+\contentsline {subsubsection}{\numberline {3.4.2}Färdsätt efter ålder}{9}{subsubsection.3.4.2}%
+\contentsline {subsubsection}{\numberline {3.4.3}Färdsätt efter sysselsättning}{10}{subsubsection.3.4.3}%
+\contentsline {subsubsection}{\numberline {3.4.4}Färdsätt efter ärende}{11}{subsubsection.3.4.4}%
+\contentsline {subsection}{\numberline {3.5}Reslängd och fordonskilometer}{12}{subsection.3.5}%
+\contentsline {subsubsection}{\numberline {3.5.1}Reserelationer inom Bålsta tätort}{14}{subsubsection.3.5.1}%
+\contentsline {subsubsection}{\numberline {3.5.2}Utpendling från Bålsta tätort}{15}{subsubsection.3.5.2}%
+\contentsline {section}{\numberline {4}Bilagor}{17}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Karta}{17}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Detaljerade tabeller}{17}{subsection.4.2}%

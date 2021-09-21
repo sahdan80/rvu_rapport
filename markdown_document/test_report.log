@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.23 (TeX Live 2021/W32TeX) (preloaded format=pdflatex 2021.8.31)  17 SEP 2021 14:38
+This is pdfTeX, Version 3.141592653-2.6-1.40.23 (TeX Live 2021/W32TeX) (preloaded format=pdflatex 2021.9.20)  21 SEP 2021 14:13
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -802,15 +802,10 @@ l.156
 as been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.174 \newpage
+l.177 \newpage
                <./test_report_files/figure-latex/fardmedelsfordelning-km-diagra
 m-1.pdf>] [4]
-Overfull \hbox (1.98761pt too wide) in paragraph at lines 207--222
- [][] 
- []
-
-
-Overfull \hbox (35.4797pt too wide) in paragraph at lines 230--245
+Overfull \hbox (1.98761pt too wide) in paragraph at lines 210--225
  [][] 
  []
 
@@ -818,552 +813,541 @@ Overfull \hbox (35.4797pt too wide) in paragraph at lines 230--245
 as been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.249 \newpage
-              pdfTeX warning (ext4): destination with the same identifier (name
-{table.2}) has been already used, duplicate ignored
+l.249 
+      ] [6pdfTeX warning (ext4): destination with the same identifier (name{tab
+le.2}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.249 \newpage
+l.252 \newpage
               ]
-Overfull \hbox (8.28516pt too wide) in paragraph at lines 295--295
+Overfull \hbox (8.28516pt too wide) in paragraph at lines 298--298
  []|\T1/lmr/bx/n/10 Befolkning|
  []
 
 
-Overfull \hbox (8.28516pt too wide) in paragraph at lines 300--300
+Overfull \hbox (8.28516pt too wide) in paragraph at lines 303--303
  []|\T1/lmr/bx/n/10 Befolkning|
  []
 
-[6pdfTeX warning (ext4): destination with the same identifier (name{table.3}) h
+[7pdfTeX warning (ext4): destination with the same identifier (name{table.3}) h
 as been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.325 \end{longtable}
+l.328 \end{longtable}
                      ]
-<test_report_files/figure-latex/omrade-diagram-1.pdf, id=186, 469.755pt x 325.2
+<test_report_files/figure-latex/omrade-diagram-1.pdf, id=191, 469.755pt x 325.2
 15pt>
 File: test_report_files/figure-latex/omrade-diagram-1.pdf Graphic file (type pd
 f)
 <use test_report_files/figure-latex/omrade-diagram-1.pdf>
 Package pdftex.def Info: test_report_files/figure-latex/omrade-diagram-1.pdf  u
-sed on input line 334.
+sed on input line 337.
 (pdftex.def)             Requested size: 469.75386pt x 325.2142pt.
-[7pdfTeX warning (ext4): destination with the same identifier (name{figure.3}) 
+[8pdfTeX warning (ext4): destination with the same identifier (name{figure.3}) 
 has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.344 ...kÃ¶n}\label{fuxe4rdsuxe4tt-efter-kuxf6n}}
+l.347 ...kÃ¶n}\label{fuxe4rdsuxe4tt-efter-kuxf6n}}
                                                    <./test_report_files/figure-
 latex/omrade-diagram-1.pdf>]
-<test_report_files/figure-latex/kÃ¶n-diagram-1.pdf, id=200, 469.755pt x 325.215
-pt>
+<test_report_files/figure-latex/kÃ¶n-diagram-1.pdf, id=204, 526.96875pt x 216.8
+1pt>
 File: test_report_files/figure-latex/kÃ¶n-diagram-1.pdf Graphic file (type pdf)
 
 <use test_report_files/figure-latex/kÃ¶n-diagram-1.pdf>
 Package pdftex.def Info: test_report_files/figure-latex/kÃ¶n-diagram-1.pdf  use
-d on input line 350.
-(pdftex.def)             Requested size: 469.75386pt x 325.2142pt.
-<test_report_files/figure-latex/alder-diagram-1.pdf, id=202, 469.755pt x 325.21
+d on input line 353.
+(pdftex.def)             Requested size: 469.78067pt x 193.28119pt.
+<test_report_files/figure-latex/alder-diagram-1.pdf, id=206, 469.755pt x 325.21
 5pt>
 File: test_report_files/figure-latex/alder-diagram-1.pdf Graphic file (type pdf
 )
 <use test_report_files/figure-latex/alder-diagram-1.pdf>
 Package pdftex.def Info: test_report_files/figure-latex/alder-diagram-1.pdf  us
-ed on input line 361.
+ed on input line 364.
 (pdftex.def)             Requested size: 469.75386pt x 325.2142pt.
-[8pdfTeX warning (ext4): destination with the same identifier (name{figure.4}) 
+[9pdfTeX warning (ext4): destination with the same identifier (name{figure.4}) 
 has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.364 
+l.367 
        <./test_report_files/figure-latex/kÃ¶n-diagram-1.pdf>]
-<test_report_files/figure-latex/sys-diagram-1.pdf, id=218, 469.755pt x 325.215p
+<test_report_files/figure-latex/sys-diagram-1.pdf, id=222, 469.755pt x 325.215p
 t>
 File: test_report_files/figure-latex/sys-diagram-1.pdf Graphic file (type pdf)
 <use test_report_files/figure-latex/sys-diagram-1.pdf>
 Package pdftex.def Info: test_report_files/figure-latex/sys-diagram-1.pdf  used
- on input line 374.
+ on input line 377.
 (pdftex.def)             Requested size: 469.75386pt x 325.2142pt.
-[9pdfTeX warning (ext4): destination with the same identifier (name{figure.5}) 
-has been already used, duplicate ignored
+[10pdfTeX warning (ext4): destination with the same identifier (name{figure.5})
+ has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.377 
+l.380 
        <./test_report_files/figure-latex/alder-diagram-1.pdf>]
-<test_report_files/figure-latex/Ã¤rende-diagram-1.pdf, id=230, 469.755pt x 325.
+<test_report_files/figure-latex/Ã¤rende-diagram-1.pdf, id=234, 469.755pt x 325.
 215pt>
 File: test_report_files/figure-latex/Ã¤rende-diagram-1.pdf Graphic file (type p
 df)
 <use test_report_files/figure-latex/Ã¤rende-diagram-1.pdf>
 Package pdftex.def Info: test_report_files/figure-latex/Ã¤rende-diagram-1.pdf  
-used on input line 385.
+used on input line 392.
 (pdftex.def)             Requested size: 469.75386pt x 325.2142pt.
-[10pdfTeX warning (ext4): destination with the same identifier (name{figure.6})
+[11pdfTeX warning (ext4): destination with the same identifier (name{figure.6})
  has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.388 
-       <./test_report_files/figure-latex/sys-diagram-1.pdf>] [11pdfTeX warning 
+l.395 
+       <./test_report_files/figure-latex/sys-diagram-1.pdf>] [12pdfTeX warning 
 (ext4): destination with the same identifier (name{figure.7}) has been already 
 used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.422 \end{longtable}
+l.427 \end{longtable}
                       <./test_report_files/figure-latex/Ã¤rende-diagram-1.pdf>]
-<test_report_files/figure-latex/avstÃ¥nds-diagram-1.pdf, id=256, 469.755pt x 32
+[13]
+<test_report_files/figure-latex/avstÃ¥nds-diagram-1.pdf, id=266, 469.755pt x 32
 5.215pt>
 File: test_report_files/figure-latex/avstÃ¥nds-diagram-1.pdf Graphic file (type
  pdf)
 <use test_report_files/figure-latex/avstÃ¥nds-diagram-1.pdf>
 Package pdftex.def Info: test_report_files/figure-latex/avstÃ¥nds-diagram-1.pdf
-  used on input line 458.
+  used on input line 464.
 (pdftex.def)             Requested size: 469.75386pt x 325.2142pt.
-[12]
-Overfull \hbox (87.85368pt too wide) in paragraph at lines 486--486
+
+Overfull \hbox (76.99776pt too wide) in paragraph at lines 491--491
 [][]|  
  []
 
 
-Overfull \hbox (84.04675pt too wide) in paragraph at lines 486--486
+Overfull \hbox (73.19083pt too wide) in paragraph at lines 491--491
 [][]|  
  []
 
 
-Overfull \hbox (80.28125pt too wide) in paragraph at lines 486--486
+Overfull \hbox (69.42532pt too wide) in paragraph at lines 491--491
 [][]|  
  []
 
 
-Overfull \hbox (102.704pt too wide) in paragraph at lines 486--486
+Overfull \hbox (91.84807pt too wide) in paragraph at lines 491--491
 [][]|  
  []
 
 
-Overfull \hbox (118.8688pt too wide) in paragraph at lines 486--486
+Overfull \hbox (108.01288pt too wide) in paragraph at lines 491--491
 [][]|  
  []
 
 
-Overfull \hbox (68.67845pt too wide) in paragraph at lines 486--486
+Overfull \hbox (57.82253pt too wide) in paragraph at lines 491--491
 [][]|  
  []
 
 
-Overfull \hbox (106.7492pt too wide) in paragraph at lines 486--486
+Overfull \hbox (95.89328pt too wide) in paragraph at lines 491--491
 [][]|  
  []
 
 
-Overfull \hbox (4.12729pt too wide) in paragraph at lines 486--486
+Overfull \hbox (80.4282pt too wide) in paragraph at lines 491--491
 [][]|  
  []
 
 
-Overfull \hbox (3.70598pt too wide) in paragraph at lines 486--486
+Overfull \hbox (3.70598pt too wide) in paragraph at lines 491--491
 \T1/lmr/bx/n/10 Kalmarsand|  
  []
 
 
-Overfull \hbox (5.46301pt too wide) in paragraph at lines 486--486
+Overfull \hbox (5.46301pt too wide) in paragraph at lines 491--491
 []\T1/lmr/bx/n/10 Västerhagen 
  []
 
 
-Overfull \hbox (2.90753pt too wide) in paragraph at lines 486--486
+Overfull \hbox (2.90753pt too wide) in paragraph at lines 491--491
 []\T1/lmr/bx/n/10 Västerdalen 
  []
 
-
-Overfull \hbox (4.4368pt too wide) in paragraph at lines 486--486
-[]\T1/lmr/bx/n/10 100%|  
- []
-
-[13pdfTeX warning (ext4): destination with the same identifier (name{figure.8})
+[14pdfTeX warning (ext4): destination with the same identifier (name{figure.8})
  has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.488 
+l.493 
        <./test_report_files/figure-latex/avstÃ¥nds-diagram-1.pdf>]
-<test_report_files/figure-latex/od-matrix-extern-table-1.pdf, id=276, 469.755pt
+<test_report_files/figure-latex/od-matrix-extern-table-1.pdf, id=282, 469.755pt
  x 325.215pt>
 File: test_report_files/figure-latex/od-matrix-extern-table-1.pdf Graphic file 
 (type pdf)
 <use test_report_files/figure-latex/od-matrix-extern-table-1.pdf>
 Package pdftex.def Info: test_report_files/figure-latex/od-matrix-extern-table-
-1.pdf  used on input line 494.
+1.pdf  used on input line 499.
 (pdftex.def)             Requested size: 469.75386pt x 325.2142pt.
-[14pdfTeX warning (ext4): destination with the same identifier (name{table.7}) 
+[15pdfTeX warning (ext4): destination with the same identifier (name{table.7}) 
 has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.495 \newpage
-              ] [15 <./test_report_files/figure-latex/od-matrix-extern-table-1.
+l.500 \newpage
+              ] [16 <./test_report_files/figure-latex/od-matrix-extern-table-1.
 pdf>]
-<karta_omraden.png, id=295, 746.79pt x 560.0925pt>
+<karta_omraden.png, id=300, 746.79pt x 560.0925pt>
 File: karta_omraden.png Graphic file (type png)
 <use karta_omraden.png>
-Package pdftex.def Info: karta_omraden.png  used on input line 507.
+Package pdftex.def Info: karta_omraden.png  used on input line 512.
 (pdftex.def)             Requested size: 469.7509pt x 352.31317pt.
 
-Overfull \hbox (19.45279pt too wide) in paragraph at lines 534--534
+Overfull \hbox (22.72847pt too wide) in paragraph at lines 539--539
  [][]|
  []
 
 
-Overfull \hbox (94.2651pt too wide) in paragraph at lines 534--534
+Overfull \hbox (97.54079pt too wide) in paragraph at lines 539--539
  [][]|
  []
 
 
-Overfull \hbox (15.50803pt too wide) in paragraph at lines 534--534
+Overfull \hbox (18.7837pt too wide) in paragraph at lines 539--539
  [][]|
  []
 
 
-Overfull \hbox (1.76497pt too wide) in paragraph at lines 534--534
+Overfull \hbox (5.04065pt too wide) in paragraph at lines 539--539
  [][]|
  []
 
 
-Overfull \hbox (7.3425pt too wide) in paragraph at lines 534--534
+Overfull \hbox (10.61818pt too wide) in paragraph at lines 539--539
  [][]|
  []
 
 
-Overfull \hbox (37.32391pt too wide) in paragraph at lines 534--534
+Overfull \hbox (40.5996pt too wide) in paragraph at lines 539--539
  [][]|
  []
 
-[16pdfTeX warning (ext4): destination with the same identifier (name{figure.9})
+[17pdfTeX warning (ext4): destination with the same identifier (name{figure.9})
  has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.536 
+l.541 
        <./karta_omraden.png>]
-Overfull \hbox (12.29475pt too wide) in paragraph at lines 555--555
+Overfull \hbox (16.35944pt too wide) in paragraph at lines 560--560
 [][]|  
  []
 
 
-Overfull \hbox (87.10707pt too wide) in paragraph at lines 555--555
+Overfull \hbox (91.17175pt too wide) in paragraph at lines 560--560
 [][]|  
  []
 
 
-Overfull \hbox (8.34999pt too wide) in paragraph at lines 555--555
+Overfull \hbox (12.41467pt too wide) in paragraph at lines 560--560
 [][]|  
  []
 
 
-Overfull \hbox (30.16588pt too wide) in paragraph at lines 555--555
+Overfull \hbox (4.24915pt too wide) in paragraph at lines 560--560
 [][]|  
  []
 
-[17pdfTeX warning (ext4): destination with the same identifier (name{table.8}) 
+
+Overfull \hbox (34.23056pt too wide) in paragraph at lines 560--560
+[][]|  
+ []
+
+[18pdfTeX warning (ext4): destination with the same identifier (name{table.8}) 
 has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.557 
-      ]
-Overfull \hbox (24.03516pt too wide) in paragraph at lines 564--579
- [][] 
- []
-
-[18pdfTeX warning (ext4): destination with the same identifier (name{table.9}) 
-has been already used, duplicate ignored
+l.562 
+      ] [19pdfTeX warning (ext4): destination with the same identifier (name{ta
+ble.9}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.580 
+l.583 
       ]
-Overfull \hbox (6.06477pt too wide) in paragraph at lines 601--601
-[]\T1/lmr/bx/n/10 Omrade|  
- []
-
-
-Overfull \hbox (13.61826pt too wide) in paragraph at lines 601--601
+Overfull \hbox (19.49864pt too wide) in paragraph at lines 602--602
  \T1/lmr/bx/n/10 ner/bekanta|
  []
 
 
-Overfull \hbox (16.72835pt too wide) in paragraph at lines 601--601
+Overfull \hbox (22.60873pt too wide) in paragraph at lines 602--602
  \T1/lmr/bx/n/10 bil/leasingbil|
  []
 
 
-Overfull \hbox (9.0858pt too wide) in paragraph at lines 601--601
-[]\T1/lmr/bx/n/10 Centrala 
+Overfull \hbox (12.0681pt too wide) in paragraph at lines 622--622
+\T1/lmr/bx/n/10 ner/bekanta|  
  []
 
 
-Overfull \hbox (6.24515pt too wide) in paragraph at lines 601--601
-[]\T1/lmr/bx/n/10 Dyarne- 
+Overfull \hbox (15.17819pt too wide) in paragraph at lines 622--622
+\T1/lmr/bx/n/10 bil/leasingbil|  
  []
 
-
-Overfull \hbox (26.46826pt too wide) in paragraph at lines 601--601
-\T1/lmr/bx/n/10 Kalmarsand|  
- []
-
-
-Overfull \hbox (0.6209pt too wide) in paragraph at lines 601--601
-[]\T1/lmr/bx/n/10 Skörby 
- []
-
-
-Overfull \hbox (3.17583pt too wide) in paragraph at lines 601--601
-\T1/lmr/bx/n/10 marken 
- []
-
-
-Overfull \hbox (2.45526pt too wide) in paragraph at lines 601--601
-\T1/lmr/bx/n/10 Åkerby|  
- []
-
-
-Overfull \hbox (3.56425pt too wide) in paragraph at lines 601--601
-\T1/lmr/bx/n/10 Kalmar 
- []
-
-
-Overfull \hbox (25.66982pt too wide) in paragraph at lines 601--601
-[]\T1/lmr/bx/n/10 Västerdalen 
- []
-
-
-Overfull \hbox (2.02312pt too wide) in paragraph at lines 601--601
-\T1/lmr/bx/n/10 Väppe- 
- []
-
-
-Overfull \hbox (28.2253pt too wide) in paragraph at lines 601--601
-[]\T1/lmr/bx/n/10 Västerhagen 
- []
-
-
-Overfull \hbox (14.64864pt too wide) in paragraph at lines 601--601
-\T1/lmr/bx/n/10 Västerän- 
- []
-
-
-Overfull \hbox (20.62233pt too wide) in paragraph at lines 601--601
-[]\T1/lmr/bx/n/10 Västerskog 
- []
-
-
-Overfull \hbox (19.45796pt too wide) in paragraph at lines 601--601
-\T1/lmr/bx/n/10 Graneberg|  
- []
-
-
-Overfull \hbox (53.10277pt too wide) in paragraph at lines 621--621
-[][]|  
- []
-
-
-Overfull \hbox (35.73532pt too wide) in paragraph at lines 621--621
-[][]|  
- []
-
-
-Overfull \hbox (32.70692pt too wide) in paragraph at lines 621--621
-[][]|  
- []
-
-
-Overfull \hbox (3.70598pt too wide) in paragraph at lines 621--621
-\T1/lmr/bx/n/10 Kalmarsand|  
- []
-
-
-Overfull \hbox (2.90753pt too wide) in paragraph at lines 621--621
-[]\T1/lmr/bx/n/10 Västerdalen 
- []
-
-
-Overfull \hbox (5.46301pt too wide) in paragraph at lines 621--621
-[]\T1/lmr/bx/n/10 Västerhagen 
- []
-
-[19pdfTeX warning (ext4): destination with the same identifier (name{table.10})
+[20pdfTeX warning (ext4): destination with the same identifier (name{table.10})
  has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.622 \end{table}
-                 ] [20pdfTeX warning (ext4): destination with the same identifi
-er (name{table.11}) has been already used, duplicate ignored
+l.624 
+      pdfTeX warning (ext4): destination with the same identifier (name{table.1
+1}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.623 
+l.624 
       ] [21pdfTeX warning (ext4): destination with the same identifier (name{ta
 ble.12}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.660 
+l.677 
       pdfTeX warning (ext4): destination with the same identifier (name{table.1
 3}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.660 
-      ] [22pdfTeX warning (ext4): destination with the same identifier (name{ta
-ble.14}) has been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.738 
+l.677 
       pdfTeX warning (ext4): destination with the same identifier (name{table.1
-5}) has been already used, duplicate ignored
+4}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.738 
+l.677 
+      ] [22pdfTeX warning (ext4): destination with the same identifier (name{ta
+ble.15}) has been already used, duplicate ignored
+<argument> ...shipout:D \box_use:N \l_shipout_box 
+                                                  \__shipout_drop_firstpage_...
+l.734 
       pdfTeX warning (ext4): destination with the same identifier (name{table.1
 6}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.738 
+l.734 
       pdfTeX warning (ext4): destination with the same identifier (name{table.1
 7}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.738 
+l.734 
       ]
-Overfull \hbox (34.9071pt too wide) in paragraph at lines 760--760
+Overfull \hbox (34.15598pt too wide) in paragraph at lines 756--756
  [][]|
  []
 
 
-Overfull \hbox (57.4769pt too wide) in paragraph at lines 760--760
+Overfull \hbox (56.72577pt too wide) in paragraph at lines 756--756
  [][]|
  []
 
 
-Overfull \hbox (72.24242pt too wide) in paragraph at lines 760--760
+Overfull \hbox (71.49129pt too wide) in paragraph at lines 756--756
  [][]|
  []
 
 
-Overfull \hbox (108.13124pt too wide) in paragraph at lines 760--760
+Overfull \hbox (107.38011pt too wide) in paragraph at lines 756--756
  [][]|
  []
 
 
-Overfull \hbox (67.97517pt too wide) in paragraph at lines 760--760
+Overfull \hbox (67.22404pt too wide) in paragraph at lines 756--756
  [][]|
  []
 
 
-Overfull \hbox (123.71838pt too wide) in paragraph at lines 760--760
+Overfull \hbox (122.96725pt too wide) in paragraph at lines 756--756
  [][]|
  []
 
 
-Overfull \hbox (60.84848pt too wide) in paragraph at lines 760--760
+Overfull \hbox (60.09735pt too wide) in paragraph at lines 756--756
  [][]|
  []
 
 
-Overfull \hbox (110.78587pt too wide) in paragraph at lines 760--760
+Overfull \hbox (110.03474pt too wide) in paragraph at lines 756--756
  [][]|
  []
 
 
-Overfull \hbox (110.40027pt too wide) in paragraph at lines 760--760
+Overfull \hbox (109.64914pt too wide) in paragraph at lines 756--756
  [][]|
  []
 
 
-Overfull \hbox (82.32532pt too wide) in paragraph at lines 760--760
+Overfull \hbox (81.57419pt too wide) in paragraph at lines 756--756
  [][]|
  []
 
 
-Overfull \hbox (85.95422pt too wide) in paragraph at lines 760--760
+Overfull \hbox (85.2031pt too wide) in paragraph at lines 756--756
  [][]|
  []
 
 
-Overfull \hbox (34.72714pt too wide) in paragraph at lines 760--760
+Overfull \hbox (33.97601pt too wide) in paragraph at lines 756--756
  [][]|
  []
 
 
-Overfull \hbox (7.68886pt too wide) in paragraph at lines 760--760
- [][]|
+Overfull \hbox (9.0858pt too wide) in paragraph at lines 756--756
+[]\T1/lmr/bx/n/10 Centrala 
+ []
+
+
+Overfull \hbox (6.24515pt too wide) in paragraph at lines 756--756
+[]\T1/lmr/bx/n/10 Dyarne- 
+ []
+
+
+Overfull \hbox (26.46826pt too wide) in paragraph at lines 756--756
+\T1/lmr/bx/n/10 Kalmarsand|  
+ []
+
+
+Overfull \hbox (0.6209pt too wide) in paragraph at lines 756--756
+[]\T1/lmr/bx/n/10 Skörby 
+ []
+
+
+Overfull \hbox (3.17583pt too wide) in paragraph at lines 756--756
+\T1/lmr/bx/n/10 marken 
+ []
+
+
+Overfull \hbox (2.45526pt too wide) in paragraph at lines 756--756
+\T1/lmr/bx/n/10 Åkerby|  
+ []
+
+
+Overfull \hbox (3.56425pt too wide) in paragraph at lines 756--756
+\T1/lmr/bx/n/10 Kalmar 
+ []
+
+
+Overfull \hbox (25.66982pt too wide) in paragraph at lines 756--756
+[]\T1/lmr/bx/n/10 Västerdalen 
+ []
+
+
+Overfull \hbox (2.02312pt too wide) in paragraph at lines 756--756
+\T1/lmr/bx/n/10 Väppe- 
+ []
+
+
+Overfull \hbox (28.2253pt too wide) in paragraph at lines 756--756
+[]\T1/lmr/bx/n/10 Västerhagen 
+ []
+
+
+Overfull \hbox (14.64864pt too wide) in paragraph at lines 756--756
+\T1/lmr/bx/n/10 Västerän- 
+ []
+
+
+Overfull \hbox (20.62233pt too wide) in paragraph at lines 756--756
+[]\T1/lmr/bx/n/10 Västerskog 
+ []
+
+
+Overfull \hbox (19.45796pt too wide) in paragraph at lines 756--756
+\T1/lmr/bx/n/10 Graneberg|  
  []
 
 [23pdfTeX warning (ext4): destination with the same identifier (name{table.18})
  has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.762 
+l.758 
       ]
-Overfull \hbox (32.33755pt too wide) in paragraph at lines 781--781
-[][]|  
- []
-
-
-Overfull \hbox (54.90735pt too wide) in paragraph at lines 781--781
-[][]|  
- []
-
-
-Overfull \hbox (69.67287pt too wide) in paragraph at lines 781--781
-[][]|  
- []
-
-
-Overfull \hbox (105.56169pt too wide) in paragraph at lines 781--781
-[][]|  
- []
-
-
-Overfull \hbox (65.40562pt too wide) in paragraph at lines 781--781
-[][]|  
- []
-
-
-Overfull \hbox (121.14883pt too wide) in paragraph at lines 781--781
-[][]|  
- []
-
-
-Overfull \hbox (58.27893pt too wide) in paragraph at lines 781--781
-[][]|  
- []
-
-
-Overfull \hbox (108.21632pt too wide) in paragraph at lines 781--781
-[][]|  
- []
-
-
-Overfull \hbox (107.83072pt too wide) in paragraph at lines 781--781
-[][]|  
- []
-
-
-Overfull \hbox (79.75577pt too wide) in paragraph at lines 781--781
-[][]|  
- []
-
-
-Overfull \hbox (83.38467pt too wide) in paragraph at lines 781--781
-[][]|  
- []
-
-
-Overfull \hbox (32.1576pt too wide) in paragraph at lines 781--781
-[][]|  
- []
+Overfull \vbox (8.589pt too high) has occurred while \output is active []
 
 [24pdfTeX warning (ext4): destination with the same identifier (name{table.19})
  has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.783 
-      ] [25pdfTeX warning (ext4): destination with the same identifier (name{ta
-ble.20}) has been already used, duplicate ignored
+l.758 
+      ]
+Overfull \hbox (33.52309pt too wide) in paragraph at lines 777--777
+[][]|  
+ []
+
+
+Overfull \hbox (56.09288pt too wide) in paragraph at lines 777--777
+[][]|  
+ []
+
+
+Overfull \hbox (70.8584pt too wide) in paragraph at lines 777--777
+[][]|  
+ []
+
+
+Overfull \hbox (106.74722pt too wide) in paragraph at lines 777--777
+[][]|  
+ []
+
+
+Overfull \hbox (66.59116pt too wide) in paragraph at lines 777--777
+[][]|  
+ []
+
+
+Overfull \hbox (122.33437pt too wide) in paragraph at lines 777--777
+[][]|  
+ []
+
+
+Overfull \hbox (59.46446pt too wide) in paragraph at lines 777--777
+[][]|  
+ []
+
+
+Overfull \hbox (109.40186pt too wide) in paragraph at lines 777--777
+[][]|  
+ []
+
+
+Overfull \hbox (109.01625pt too wide) in paragraph at lines 777--777
+[][]|  
+ []
+
+
+Overfull \hbox (80.9413pt too wide) in paragraph at lines 777--777
+[][]|  
+ []
+
+
+Overfull \hbox (84.5702pt too wide) in paragraph at lines 777--777
+[][]|  
+ []
+
+
+Overfull \hbox (33.34312pt too wide) in paragraph at lines 777--777
+[][]|  
+ []
+
+
+Overfull \hbox (0.86436pt too wide) in paragraph at lines 777--777
+[]\T1/lmr/bx/n/10 15%|  
+ []
+
+
+Overfull \hbox (0.86436pt too wide) in paragraph at lines 777--777
+[]\T1/lmr/bx/n/10 10%|  
+ []
+
+
+Overfull \hbox (0.86436pt too wide) in paragraph at lines 777--777
+[]\T1/lmr/bx/n/10 41%|  
+ []
+
+
+Overfull \hbox (0.86436pt too wide) in paragraph at lines 777--777
+[]\T1/lmr/bx/n/10 12%|  
+ []
+
+[25pdfTeX warning (ext4): destination with the same identifier (name{table.20})
+ has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.784 \end{document}
+l.780 \end{document}
                     ] (./test_report.aux)
 
 LaTeX Warning: There were multiply-defined labels.
@@ -1372,13 +1356,13 @@ Package rerunfilecheck Info: File `test_report.out' has not changed.
 (rerunfilecheck)             Checksum: D9097F2D9C5882550414A72CD26F3424;2707.
  ) 
 Here is how much of TeX's memory you used:
- 12468 strings out of 480559
- 187492 string characters out of 5901444
- 532150 words of memory out of 5000000
- 29717 multiletter control sequences out of 15000+600000
+ 12467 strings out of 480559
+ 187477 string characters out of 5901444
+ 525152 words of memory out of 5000000
+ 29716 multiletter control sequences out of 15000+600000
  462056 words of font info for 70 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
- 60i,17n,66p,782b,595s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 60i,17n,66p,782b,565s stack positions out of 5000i,500n,10000p,200000b,80000s
 pdfTeX warning (dest): name{Hfootnote.4} has been referenced but does not exi
 st, replaced by a fixed one
 
@@ -1402,10 +1386,10 @@ ing/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr6.pfb><c:/Users/SETK21602/AppDa
 ta/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr7.pfb><c:/Users/SETK2160
 2/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr8.pfb><c:/Users/S
 ETK21602/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmri10.pfb>
-Output written on test_report.pdf (25 pages, 468923 bytes).
+Output written on test_report.pdf (25 pages, 469552 bytes).
 PDF statistics:
- 424 PDF objects out of 1000 (max. 8388607)
- 355 compressed objects within 4 object streams
+ 425 PDF objects out of 1000 (max. 8388607)
+ 356 compressed objects within 4 object streams
  110 named destinations out of 1000 (max. 500000)
  203 words of extra memory for PDF output out of 10000 (max. 10000000)
 
